@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { listCourseFiles } from "@/lib/nextcloud";
 import CourseDropzone from "@/components/CourseDropzone";
+import DeleteCourseButton from "@/components/DeleteCourseButton";
+import FileRow from "@/components/FileRow";
 
 export const dynamic = "force-dynamic";
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} o`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-}
 
 export default async function CourseDetailPage({
   params,
@@ -25,7 +21,18 @@ export default async function CourseDetailPage({
       <Link href="/cours" className="muted">
         ← Tous les cours
       </Link>
-      <h1>{courseName}</h1>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+        }}
+      >
+        <h1>{courseName}</h1>
+        <DeleteCourseButton course={courseName} />
+      </div>
 
       <CourseDropzone course={courseName} />
 
@@ -35,10 +42,7 @@ export default async function CourseDetailPage({
       ) : (
         <ul className="file-list">
           {fileEntries.map((f) => (
-            <li key={f.path}>
-              <span>{f.path}</span>
-              <span className="muted">{formatSize(f.size)}</span>
-            </li>
+            <FileRow key={f.path} course={courseName} path={f.path} size={f.size} lastmod={f.lastmod} />
           ))}
         </ul>
       )}

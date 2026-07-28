@@ -129,3 +129,37 @@ export async function uploadCourseFile(
 
   await c.putFileContents(`${currentPath}/${fileName}`, content, { overwrite: true });
 }
+
+export async function getCourseFile(
+  course: string,
+  relativePath: string,
+): Promise<Buffer> {
+  assertSafeSegment(course, "Nom de cours");
+  assertSafeRelativePath(relativePath);
+
+  const c = getClient();
+  const coursePath = `/${BASE_FOLDER}/${course}`;
+  const content = await c.getFileContents(`${coursePath}/${relativePath}`);
+
+  if (!Buffer.isBuffer(content)) {
+    throw new Error("Contenu de fichier inattendu.");
+  }
+
+  return content;
+}
+
+export async function deleteCourseFile(course: string, relativePath: string): Promise<void> {
+  assertSafeSegment(course, "Nom de cours");
+  assertSafeRelativePath(relativePath);
+
+  const c = getClient();
+  const coursePath = `/${BASE_FOLDER}/${course}`;
+  await c.deleteFile(`${coursePath}/${relativePath}`);
+}
+
+export async function deleteCourse(course: string): Promise<void> {
+  assertSafeSegment(course, "Nom de cours");
+
+  const c = getClient();
+  await c.deleteFile(`/${BASE_FOLDER}/${course}`);
+}
