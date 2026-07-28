@@ -1,0 +1,12 @@
+cloud.anzee.xyz {
+	reverse_proxy nextcloud:80
+
+	# En-têtes recommandés par Nextcloud (WebDAV/CardDAV/CalDAV bien configurés)
+	header {
+		Strict-Transport-Security "max-age=15552000; includeSubDomains"
+	}
+}
+
+anzee.xyz, www.anzee.xyz {
+	reverse_proxy site:3000
+}

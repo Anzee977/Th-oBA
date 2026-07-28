@@ -1,0 +1,14 @@
+# Dépendances / builds
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# Secrets
+.env
+.env.local
+docker/.env
+
+# Divers
+.DS_Store
+*.log
