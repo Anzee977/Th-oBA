@@ -7,7 +7,7 @@ export type NavItem = {
 
 export const navItems: NavItem[] = [
   { href: "/cours", label: "Cours & Drive" },
+  { href: "/horaire", label: "Horaire" },
   // { href: "/todo", label: "Todo list" },
-  // { href: "/calendrier", label: "Calendrier" },
   // { href: "/sport", label: "Sport" },
 ];
