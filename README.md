@@ -157,6 +157,24 @@ Sur iPhone/Safari, les notifications push nécessitent d'avoir installé le site
 d'accueil (Safari > Partager > Sur l'écran d'accueil) — Safari ne les supporte pas dans un onglet
 normal.
 
+## 12. Horaire (page `/horaire`)
+
+Lit en direct le(s) flux ICS de tes universités (heures + salle), avec un cache mémoire d'1h
+côté serveur pour éviter de spammer le serveur de l'université à chaque visite.
+
+1. Récupère le lien ICS personnel de ton horaire (ex. ICHEC : `Horaires > Exporter/S'abonner au
+   calendrier`, un lien qui finit en `.ics?...`). Ce lien contient un token secret — ne le mets
+   jamais dans un commit.
+2. Ajoute-le dans `site/.env` :
+   ```
+   ICHEC_ICS_URL=https://horaires.ichec.be/Telechargements/ical/...
+   ```
+3. Relance le service : `docker compose up -d --build site`.
+4. Pour une deuxième université, ajoute `UNIV2_ICS_URL=...` dans `site/.env` — aucun changement
+   de code nécessaire, la page détecte automatiquement les sources configurées
+   (`site/src/lib/schedule.ts` → `SCHEDULE_SOURCES`). Pour en ajouter une troisième plus tard,
+   ajoute une entrée dans ce tableau.
+
 ## Scalabilité / évolutions prévues
 
 - **Ajouter une page** : créer un dossier sous `site/src/app/(app)/<page>/`, ajouter l'entrée

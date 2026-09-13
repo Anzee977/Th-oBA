@@ -16,6 +16,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/cours", label: "Cours & Drive" },
       { href: "/calendrier", label: "Calendrier" },
+      { href: "/horaire", label: "Horaire" },
     ],
   },
   {

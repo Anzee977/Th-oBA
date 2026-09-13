@@ -59,6 +59,8 @@ services:
   site:
     build: ../site
     restart: unless-stopped
+    environment:
+      TZ: Europe/Brussels
     env_file:
       - ../site/.env
     environment:
