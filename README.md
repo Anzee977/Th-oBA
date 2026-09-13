@@ -10,6 +10,14 @@ Architecture :
   (Todo, Calendrier, Sport...) s'ajouteront plus tard sans toucher à cette base : chaque page est
   une route indépendante enregistrée dans `site/src/lib/nav.ts`.
 - **Caddy** : reverse proxy avec HTTPS automatique (Let's Encrypt) pour les deux domaines.
+- **Meilisearch** : index de recherche plein texte (noms de fichiers + contenu des PDF/notes
+  texte), alimenté automatiquement à chaque upload/suppression/renommage via `site/src/lib/indexer.ts`.
+- **Page Santé** (`/sante`) : pas, sommeil, Body Battery et activités récentes, lus directement
+  depuis Garmin Connect (`site/src/lib/garmin.ts`, librairie non-officielle `garmin-connect`).
+  Nécessite un compte Garmin **sans double authentification (2FA)**. Le jeton de session est mis
+  en cache dans un volume Docker pour éviter de se reconnecter à chaque redémarrage, et les
+  données sont rafraîchies au maximum toutes les 15 minutes pour ne pas solliciter l'API Garmin
+  trop souvent.
 
 Le tout tourne dans Docker Compose sur ton VPS (`docker/docker-compose.yml`).
 
@@ -37,6 +45,7 @@ cd ../site
 cp .env.example .env
 # éditer .env : SITE_PASSWORD, SESSION_SECRET (openssl rand -base64 32)
 # laisser NEXTCLOUD_APP_PASSWORD vide pour l'instant, on le remplit à l'étape 4
+# MEILISEARCH_KEY doit être identique à MEILI_MASTER_KEY dans docker/.env
 
 cd ../docker
 docker compose up -d
@@ -74,16 +83,85 @@ Va sur `https://anzee.xyz`, entre ton `SITE_PASSWORD`, tu arrives sur la page Co
 premier cours, glisse un fichier ou un dossier dessus : il apparaît dans Nextcloud sous
 `Cours/<nom-du-cours>/`.
 
+## 5. Recherche
+
+La page `/recherche` cherche dans les noms de fichiers et le contenu (PDF, `.txt`, `.md`, `.csv`)
+de tous les cours. L'index se met à jour automatiquement à chaque upload/suppression/renommage
+fait depuis le site. Pour les fichiers ajoutés autrement (app mobile Nextcloud, WebDAV direct),
+clique sur **Réindexer tout** dans la page Recherche pour les intégrer à l'index.
+
+## 6. Santé (Garmin)
+
+Dans `site/.env`, renseigne `GARMIN_EMAIL` / `GARMIN_PASSWORD` (compte sans 2FA), puis
+`docker compose up -d --build site`. La page `/sante` affiche pas (7 derniers jours), Body
+Battery du jour, sommeil de la nuit et les dernières activités. Si le compte a de la 2FA activée,
+la connexion échouera : soit la désactiver, soit récupérer un jeton de session manuellement et le
+déposer dans le volume `garmin_tokens` (`oauth1_token.json` / `oauth2_token.json`).
+
+## 7. Synthèse IA (Claude)
+
+Dans `site/.env`, renseigne `ANTHROPIC_API_KEY` (clé créée sur console.anthropic.com > API Keys),
+puis `docker compose up -d --build site`. Laisser la variable vide désactive la fonctionnalité
+(le bouton n'apparaît pas).
+
+Pour un cours qui contient un sous-dossier **`notes de cours`**, un bouton **"Générer ma synthèse
+de la semaine"** apparaît sur la page du cours. Il :
+
+- prend les fichiers de `notes de cours` modifiés pendant la semaine calendaire en cours
+  (lundi-dimanche) ;
+- extrait leur texte (PDF, Word `.docx`, Markdown/texte) ;
+- envoie le tout à Claude (`claude-opus-4-8`) pour générer une courte synthèse (chapitres couverts
+  + points à réviser en priorité) ;
+- enregistre le résultat dans un cours dédié **"Synthèse de semaine"** (créé automatiquement),
+  sous le nom `{Cours} S{numéro de semaine ISO}.md` — et l'affiche directement sur la page.
+
+Formats de notes non supportés (images scannées, PowerPoint, etc.) sont ignorés silencieusement ;
+seuls les fichiers texte/PDF/Word sont pris en compte pour l'instant.
+
+## 8. Todo
+
+Page `/todo` : liste de tâches avec catégorie (texte libre, autocomplétée depuis les catégories
+déjà utilisées) et date d'échéance optionnelles. Stockée dans la base `health` (table `todos`),
+aucune configuration nécessaire au-delà de `HEALTH_DB_*`.
+
+## 9. Analyse (corrélations)
+
+Page `/analyse` : compare tes prises de compléments/café/repas avec tes données de santé
+(sommeil, Body Battery, FC repos) sur les 30 derniers jours — comparateur "jours avec / jours
+sans" un facteur donné, plus une vue chronologique jour par jour. Comparaison naïve (même jour
+calendaire, pas de test statistique) : utile pour repérer une tendance une fois assez de données
+accumulées, pas une preuve scientifique.
+
+## 10. Export CSV
+
+Page `/export` : télécharge l'intégralité des données santé/compléments/alimentation/activités
+au format CSV, pour analyse externe (Excel, Python, etc.).
+
+## 11. Notifications push
+
+Dans `site/.env`, renseigne `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` (générer
+une paire avec `node -e "console.log(require('web-push').generateVAPIDKeys())"` depuis
+`site/`), puis `docker compose up -d --build site`. Laisser vide désactive la fonctionnalité.
+
+Le site est une PWA installable (`public/manifest.json`, `public/sw.js`, icônes dans
+`public/icons/`). Depuis la sidebar, le bouton **"Activer les notifications"** demande la
+permission navigateur et enregistre l'abonnement en base (table `push_subscriptions`). Chaque
+soir à **22h heure locale** (`TZ=Europe/Brussels`, voir `docker/docker-compose.yml`), le site
+vérifie 3 conditions et notifie celles non remplies :
+
+- Garmin pas synchronisé depuis plus de 3h ;
+- aucun complément noté aujourd'hui ;
+- aucun repas noté aujourd'hui.
+
+Sur iPhone/Safari, les notifications push nécessitent d'avoir installé le site sur l'écran
+d'accueil (Safari > Partager > Sur l'écran d'accueil) — Safari ne les supporte pas dans un onglet
+normal.
+
 ## Scalabilité / évolutions prévues
 
-- **Ajouter une page** (Todo, Calendrier, Sport...) : créer un dossier sous
-  `site/src/app/(app)/<page>/`, ajouter l'entrée dans `site/src/lib/nav.ts`. Le layout, l'auth et
-  le style sont déjà partagés.
-- **Calendrier/Todo** peuvent réutiliser Nextcloud (apps Tasks/Calendar/Deck, protocoles
-  CalDAV/CardDAV) suivant le même principe que le module `lib/nextcloud.ts` : un client dédié par
-  intégration, appelé depuis des Route Handlers.
-- **IA de synthèse** : un futur Route Handler peut lire les notes d'un cours via
-  `listCourseFiles`/téléchargement WebDAV, les envoyer à l'API Anthropic, et déposer la synthèse
-  générée dans le même dossier — sans changer l'architecture existante.
+- **Ajouter une page** : créer un dossier sous `site/src/app/(app)/<page>/`, ajouter l'entrée
+  dans `site/src/lib/nav.ts`. Le layout, l'auth et le style sont déjà partagés.
+- **Calendrier de cours** : reste à connecter (CalDAV/Nextcloud Calendar), suivant le même
+  principe que `lib/nextcloud.ts` — un client dédié, appelé depuis des Route Handlers.
 - Le site est stateless (toutes les données vivent dans Nextcloud/MariaDB) : il peut être
   redéployé, mis à l'échelle horizontalement, ou déplacé sur un autre VPS sans perte de données.

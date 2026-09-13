@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LockIcon } from "@/components/icons";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,16 +36,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <form onSubmit={handleSubmit} className="card" style={{ width: 320 }}>
-        <h1 style={{ fontSize: 18, marginTop: 0 }}>Connexion</h1>
+    <div className="login-shell">
+      <form onSubmit={handleSubmit} className="card login-card">
+        <span className="login-lock">
+          <LockIcon size={20} />
+        </span>
+        <h1>Anzee</h1>
+        <p className="muted" style={{ marginBottom: 20 }}>
+          Entre ton mot de passe pour accéder à ton espace.
+        </p>
         <input
           type="password"
           placeholder="Mot de passe"
@@ -53,7 +53,7 @@ export default function LoginPage() {
           autoFocus
           style={{ width: "100%", marginBottom: 12 }}
         />
-        <button className="btn" type="submit" disabled={loading} style={{ width: "100%" }}>
+        <button className="btn" type="submit" disabled={loading} style={{ width: "100%", justifyContent: "center" }}>
           {loading ? "Connexion..." : "Se connecter"}
         </button>
         {error && <p className="error">{error}</p>}

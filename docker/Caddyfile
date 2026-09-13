@@ -1,3 +1,7 @@
+(compress) {
+	encode zstd gzip
+}
+
 cloud.anzee.xyz {
 	reverse_proxy nextcloud:80
 
@@ -9,4 +13,28 @@ cloud.anzee.xyz {
 
 anzee.xyz, www.anzee.xyz {
 	reverse_proxy site:3000
+}
+
+kine.anzee.xyz {
+	import compress
+	handle_path /api/* {
+		reverse_proxy kine-backend:8000
+	}
+	handle {
+		reverse_proxy kine-frontend:3000
+	}
+}
+
+dashboard.anzee.xyz {
+	import compress
+	basic_auth {
+		theo $2a$14$syONSBMFBvE.juoD5EDTzuIJP5/MzVChUNieG9cUZgegsf4wA1BZK
+	}
+	handle_path /api/* {
+		reverse_proxy kine-backend:8000
+	}
+	handle {
+		root * /srv/dashboard
+		file_server
+	}
 }

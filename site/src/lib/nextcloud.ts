@@ -106,6 +106,118 @@ export async function listCourseFiles(course: string): Promise<FileEntry[]> {
     .sort((a, b) => a.path.localeCompare(b.path, "fr"));
 }
 
+export async function deleteCourse(name: string): Promise<void> {
+  assertSafeSegment(name, "Nom de cours");
+  const c = getClient();
+  const coursePath = `/${BASE_FOLDER}/${name}`;
+  if (await c.exists(coursePath)) {
+    await c.deleteFile(coursePath);
+  }
+}
+
+// Fonctionne pour un fichier comme pour un dossier (DELETE WebDAV est récursif sur une collection).
+export async function deleteCourseEntry(course: string, relativePath: string): Promise<void> {
+  assertSafeSegment(course, "Nom de cours");
+  assertSafeRelativePath(relativePath);
+  const c = getClient();
+  await c.deleteFile(`/${BASE_FOLDER}/${course}/${relativePath}`);
+}
+
+export async function statCourseEntry(
+  course: string,
+  relativePath: string,
+): Promise<{ isDirectory: boolean; size: number; lastmod: string } | null> {
+  assertSafeSegment(course, "Nom de cours");
+  assertSafeRelativePath(relativePath);
+  const c = getClient();
+  const fullPath = `/${BASE_FOLDER}/${course}/${relativePath}`;
+  if (!(await c.exists(fullPath))) return null;
+
+  const result: any = await c.stat(fullPath);
+  const item = result?.data ?? result;
+  return { isDirectory: item.type === "directory", size: item.size ?? 0, lastmod: item.lastmod };
+}
+
+// Renomme ou déplace un fichier/dossier vers un autre chemin du même cours. Crée les
+// dossiers intermédiaires de destination si besoin.
+export async function moveCourseEntry(
+  course: string,
+  fromPath: string,
+  toPath: string,
+): Promise<void> {
+  assertSafeSegment(course, "Nom de cours");
+  assertSafeRelativePath(fromPath);
+  assertSafeRelativePath(toPath);
+
+  const c = getClient();
+  const coursePath = `/${BASE_FOLDER}/${course}`;
+
+  const destSegments = toPath.split("/");
+  destSegments.pop();
+  let currentPath = coursePath;
+  for (const segment of destSegments) {
+    currentPath = `${currentPath}/${segment}`;
+    await ensureDirectory(currentPath);
+  }
+
+  await c.moveFile(`${coursePath}/${fromPath}`, `${coursePath}/${toPath}`);
+}
+
+export async function createFolder(course: string, relativePath: string): Promise<void> {
+  assertSafeSegment(course, "Nom de cours");
+  assertSafeRelativePath(relativePath);
+
+  const c = getClient();
+  const coursePath = `/${BASE_FOLDER}/${course}`;
+  let currentPath = coursePath;
+  for (const segment of relativePath.split("/")) {
+    currentPath = `${currentPath}/${segment}`;
+    await ensureDirectory(currentPath);
+  }
+}
+
+export type DirEntry = {
+  name: string;
+  isDirectory: boolean;
+  size: number;
+  lastmod: string;
+};
+
+// Liste le contenu direct (non récursif) d'un dossier de cours, pour la navigation dans l'UI.
+export async function listFolder(course: string, folderSegments: string[]): Promise<DirEntry[]> {
+  assertSafeSegment(course, "Nom de cours");
+  folderSegments.forEach((s) => assertSafeSegment(s, "Segment de chemin"));
+
+  const c = getClient();
+  const coursePath = `/${BASE_FOLDER}/${course}`;
+  const targetPath = folderSegments.length ? `${coursePath}/${folderSegments.join("/")}` : coursePath;
+
+  if (!(await c.exists(targetPath))) return [];
+
+  const items = await c.getDirectoryContents(targetPath);
+  return items
+    .map((item) => ({
+      name: item.basename,
+      isDirectory: item.type === "directory",
+      size: item.size ?? 0,
+      lastmod: item.lastmod,
+    }))
+    .sort((a, b) => {
+      if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+      return a.name.localeCompare(b.name, "fr");
+    });
+}
+
+export async function getCourseFileContents(course: string, relativePath: string): Promise<Buffer> {
+  assertSafeSegment(course, "Nom de cours");
+  assertSafeRelativePath(relativePath);
+  const c = getClient();
+  const content = await c.getFileContents(`/${BASE_FOLDER}/${course}/${relativePath}`, {
+    format: "binary",
+  });
+  return Buffer.isBuffer(content) ? content : Buffer.from(content as ArrayBuffer);
+}
+
 export async function uploadCourseFile(
   course: string,
   relativePath: string,

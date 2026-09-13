@@ -35,13 +35,16 @@ export default function NewCourseForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+    <form
+      onSubmit={handleSubmit}
+      style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}
+    >
       <input
         type="text"
         placeholder="Nom du nouveau cours (ex: Analyse 2)"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        style={{ flex: 1 }}
+        style={{ flex: 1, minWidth: 200 }}
       />
       <button className="btn" type="submit" disabled={loading || name.trim().length === 0}>
         {loading ? "Création..." : "Créer le cours"}

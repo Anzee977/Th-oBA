@@ -12,11 +12,14 @@ services:
     command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
     volumes:
       - db_data:/var/lib/mysql
+      - ./mariadb-init:/docker-entrypoint-initdb.d:ro
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: nextcloud
       MYSQL_USER: nextcloud
+      HEALTH_DB_PASSWORD: ${HEALTH_DB_PASSWORD}
+      TZ: Europe/Brussels
     networks:
       - internal
 
@@ -41,11 +44,78 @@ services:
     networks:
       - internal
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.10
+    restart: unless-stopped
+    volumes:
+      - meili_data:/meili_data
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_ENV: production
+    networks:
+      - internal
+
   site:
     build: ../site
     restart: unless-stopped
     env_file:
       - ../site/.env
+    environment:
+      TZ: Europe/Brussels
+    volumes:
+      - garmin_tokens:/app/.garmin-tokens
+    depends_on:
+      - meilisearch
+      - db
+    networks:
+      - internal
+
+  kine-backend:
+    build:
+      context: /home/theo/Desktop/kine-assistant
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - /home/theo/Desktop/kine-assistant/backend/.env.production
+    volumes:
+      # Cache du modèle d'embedding bge-m3 : évite de le re-télécharger à chaque déploiement.
+      - kine_hf_cache:/root/.cache/huggingface
+      # BRIEF v2, LOT B.5 — journal des motifs non couverts. Bind mount vers le host (pas un
+      # volume Docker nommé) pour que scripts/rapport_couverture.py (LOT B.6) puisse le lire
+      # directement depuis le repo, sans docker exec, et pour qu'il survive à un rebuild.
+      - /home/theo/Desktop/kine-assistant/logs:/app/logs
+    # Sans limite, les logs d'accès uvicorn grossissent indéfiniment sur le disque de
+    # l'hôte — déjà passé à 79 % une fois, au point de bloquer les builds.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Marque le conteneur `unhealthy` quand le process est figé (un process bloqué reste
+    # « Up » indéfiniment, sinon). Attention : `restart: unless-stopped` ne réagit PAS à
+    # l'état unhealthy — c'est scripts/surveillance.sh, lancé par cron, qui répare.
+    # start_period couvre le préchargement du modèle d'embedding (~40 s au démarrage).
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 90s
+      retries: 3
+    networks:
+      - internal
+
+  kine-frontend:
+    build:
+      context: /home/theo/Desktop/kine-assistant/frontend
+      args:
+        NEXT_PUBLIC_API_URL: /api
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - internal
 
@@ -53,15 +123,18 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${CADDY_BIND_IP:-0.0.0.0}:80:80"
+      - "${CADDY_BIND_IP:-0.0.0.0}:443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
+      - /home/theo/Desktop/kine-assistant/dashboard:/srv/dashboard:ro
     depends_on:
       - nextcloud
       - site
+      - kine-backend
+      - kine-frontend
     networks:
       - internal
 
@@ -73,3 +146,6 @@ volumes:
   nextcloud_data:
   caddy_data:
   caddy_config:
+  meili_data:
+  garmin_tokens:
+  kine_hf_cache:

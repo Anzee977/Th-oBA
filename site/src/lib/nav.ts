@@ -1,13 +1,39 @@
-// Registre central des pages du site. Ajouter une future page (Todo, Calendrier,
-// Sport...) revient simplement à ajouter une entrée ici + un dossier sous src/app.
+// Registre central des pages du site. Ajouter une future page revient à ajouter
+// une entrée ici (dans le bon groupe) + un dossier sous src/app.
 export type NavItem = {
   href: string;
   label: string;
 };
 
-export const navItems: NavItem[] = [
-  { href: "/cours", label: "Cours & Drive" },
-  // { href: "/todo", label: "Todo list" },
-  // { href: "/calendrier", label: "Calendrier" },
-  // { href: "/sport", label: "Sport" },
+export type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+export const navGroups: NavGroup[] = [
+  {
+    label: "Cours",
+    items: [
+      { href: "/cours", label: "Cours & Drive" },
+      { href: "/calendrier", label: "Calendrier" },
+    ],
+  },
+  {
+    label: "Santé",
+    items: [
+      { href: "/sante", label: "Santé" },
+      { href: "/suivi", label: "Suivi" },
+      { href: "/alimentation", label: "Alimentation" },
+      { href: "/analyse", label: "Analyse" },
+    ],
+  },
+  {
+    label: "Organisation",
+    items: [
+      { href: "/todo", label: "Todo" },
+      { href: "/export", label: "Export" },
+    ],
+  },
 ];
+
+export const navItems: NavItem[] = navGroups.flatMap((g) => g.items);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { InvalidPathError, uploadCourseFile } from "@/lib/nextcloud";
+import { indexFile } from "@/lib/indexer";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 Mo
 
@@ -24,6 +25,7 @@ export async function POST(
 
     const buffer = Buffer.from(await file.arrayBuffer());
     await uploadCourseFile(cours, relativePath, buffer);
+    await indexFile(cours, relativePath);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

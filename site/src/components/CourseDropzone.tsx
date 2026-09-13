@@ -65,7 +65,13 @@ async function collectFromDataTransfer(dataTransfer: DataTransfer): Promise<Coll
   return Array.from(dataTransfer.files).map((file) => ({ file, path: file.name }));
 }
 
-export default function CourseDropzone({ course }: { course: string }) {
+export default function CourseDropzone({
+  course,
+  basePath = "",
+}: {
+  course: string;
+  basePath?: string;
+}) {
   const router = useRouter();
   const [active, setActive] = useState(false);
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
@@ -81,9 +87,10 @@ export default function CourseDropzone({ course }: { course: string }) {
         prev.map((u) => (u.path === path ? { ...u, status: "uploading" } : u)),
       );
 
+      const fullPath = basePath ? `${basePath}/${path}` : path;
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("path", path);
+      formData.append("path", fullPath);
 
       try {
         const res = await fetch(`/api/cours/${encodeURIComponent(course)}/upload`, {
