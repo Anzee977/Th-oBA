@@ -63,8 +63,6 @@ services:
       TZ: Europe/Brussels
     env_file:
       - ../site/.env
-    environment:
-      TZ: Europe/Brussels
     volumes:
       - garmin_tokens:/app/.garmin-tokens
     depends_on:

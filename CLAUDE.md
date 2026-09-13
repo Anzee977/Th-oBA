@@ -40,15 +40,25 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
   récurrents (RRULE, séances déplacées/annulées) via la lib `node-ical`.
 - Cache mémoire côté serveur, 1h de TTL (`site/src/lib/schedule.ts`), pour ne pas spammer le
   serveur de l'université à chaque visite.
-- Sources déclarées dans `SCHEDULE_SOURCES` (`site/src/lib/schedule.ts`) : `ICHEC_ICS_URL` actif,
-  `UNIV2_ICS_URL` prévu mais pas encore rempli (Reza n'a pas encore le lien de sa 2e université).
-  **Ajouter une université = juste une variable d'env, aucun code à toucher.**
-- **Jamais testé en conditions réelles** : le sandbox Claude qui a écrit ce module n'avait pas
-  accès réseau au domaine `horaires.ichec.be` (bloqué par la politique réseau de cet
-  environnement). Le code suit strictement le format ICS/RFC 5545 et l'API documentée de
-  `node-ical`, mais si les salles ou les horaires s'affichent mal une fois testé en vrai, c'est
-  probablement une histoire de mapping de champ (`LOCATION` vs autre chose selon le système
-  utilisé par l'université) — vérifier ça en premier.
+- Sources déclarées dans `SCHEDULE_SOURCES` (`site/src/lib/schedule.ts`) : `ICHEC_ICS_URL` actif
+  et configuré (`site/.env` sur le VPS), `UNIV2_ICS_URL` prévu mais pas encore rempli (Reza n'a
+  pas encore le lien de sa 2e université). **Ajouter une université = juste une variable d'env,
+  aucun code à toucher.**
+- **Testé en conditions réelles le 2026-09-13** contre le vrai flux ICHEC (HYPERPLANNING 2023 -
+  0.11.0), directement sur le VPS via `curl` + connexion authentifiée à `/horaire`. Mapping de
+  champs confirmé correct, aucun changement de code nécessaire :
+  - La salle est bien dans `LOCATION` de chaque `VEVENT` (ex. `LOCATION;LANGUAGE=fr:B104 - Salle
+    de cours`) — le code (`textValue(event.location)` / `textValue(instance.event.location)`)
+    n'a pas besoin d'aller la chercher ailleurs (`DESCRIPTION` la répète aussi, en plus, mais
+    n'est pas utilisée).
+  - Environ 20% des `VEVENT` n'ont pas de `LOCATION` du tout (cours à distance / salle pas encore
+    assignée par HyperPlanning) — comportement normal, la salle s'affiche juste vide, pas un bug.
+  - Le flux ICHEC n'utilise **aucun `RRULE`** : HyperPlanning expose déjà chaque séance comme un
+    `VEVENT` indépendant avec son propre `DTSTART`/`DTEND`. La branche `event.rrule` de
+    `getWeekSchedule` (gestion des séries récurrentes) reste dans le code pour d'autres systèmes
+    ICS qui en émettraient, mais n'est jamais empruntée pour ICHEC.
+  - `node-ical@0.27.1` exige Node ≥22 (`engines`) — `site/Dockerfile` est passé à
+    `node:22-alpine` (était `node:20-alpine`) pour cette raison.
 
 ## Sécurité — à ne jamais committer
 
