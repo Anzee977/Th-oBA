@@ -260,18 +260,3 @@ export async function getCourseFile(
   return content;
 }
 
-export async function deleteCourseFile(course: string, relativePath: string): Promise<void> {
-  assertSafeSegment(course, "Nom de cours");
-  assertSafeRelativePath(relativePath);
-
-  const c = getClient();
-  const coursePath = `/${BASE_FOLDER}/${course}`;
-  await c.deleteFile(`${coursePath}/${relativePath}`);
-}
-
-export async function deleteCourse(course: string): Promise<void> {
-  assertSafeSegment(course, "Nom de cours");
-
-  const c = getClient();
-  await c.deleteFile(`/${BASE_FOLDER}/${course}`);
-}
