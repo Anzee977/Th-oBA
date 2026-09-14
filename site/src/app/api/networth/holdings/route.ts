@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createNetworthAsset, NetworthCategory } from "@/lib/healthDb";
+import { createNetworthHolding } from "@/lib/healthDb";
 
-const CATEGORIES: NetworthCategory[] = ["crypto", "tradfi", "cash"];
 const CURRENCIES = ["EUR", "USD", "GBP", "CHF"];
 
 export async function POST(request: NextRequest) {
   try {
-    const { category, name, symbol, currency } = await request.json();
+    const { containerId, name, symbol, currency, category } = await request.json();
 
-    if (!CATEGORIES.includes(category)) {
-      return NextResponse.json({ error: "Catégorie invalide." }, { status: 400 });
+    const cleanContainerId = Number(containerId);
+    if (!Number.isInteger(cleanContainerId)) {
+      return NextResponse.json({ error: "Sous-catégorie invalide." }, { status: 400 });
     }
     if (typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json({ error: "Nom requis." }, { status: 400 });
@@ -23,19 +23,17 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanCurrency =
-      category === "cash" && typeof currency === "string" && CURRENCIES.includes(currency)
-        ? currency
-        : "EUR";
+      typeof currency === "string" && CURRENCIES.includes(currency) ? currency : "EUR";
 
-    const asset = await createNetworthAsset({
-      category,
+    const holding = await createNetworthHolding({
+      containerId: cleanContainerId,
       name: name.trim(),
       symbol: cleanSymbol,
       currency: cleanCurrency,
     });
-    return NextResponse.json({ asset });
+    return NextResponse.json({ holding });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Impossible de créer la sous-catégorie." }, { status: 500 });
+    return NextResponse.json({ error: "Impossible d'ajouter la possession." }, { status: 500 });
   }
 }

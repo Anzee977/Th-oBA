@@ -177,12 +177,15 @@ côté serveur pour éviter de spammer le serveur de l'université à chaque vis
 
 ## 13. Net Worth (page `/networth`)
 
-Patrimoine réparti en 3 catégories fixes — **Crypto**, **Trade Fi** (actions/ETF), **Cash** —
-dans lesquelles tu crées librement des sous-catégories (ex. "Solana", "Coca-Cola", "Compte
-courant BNP") et enregistres des mouvements (achat/vente, dépôt/retrait). La quantité détenue
-est la somme de tous les mouvements — aucune configuration nécessaire au-delà de `HEALTH_DB_*`.
+Patrimoine à 3 niveaux : 3 **catégories fixes** — **Crypto**, **Trade Fi** (actions/ETF),
+**Cash** — dans lesquelles tu crées librement des **sous-catégories** ("contenants", ex.
+"Ledger", "Binance", "Trade Republic", "BNP"), et dans chaque contenant tu ajoutes les
+**possessions** que tu y détiens (ex. "Solana" et "Bitcoin" dans "Ledger", "Coca-Cola" dans
+"Trade Republic"). Chaque possession a un historique de mouvements (achat/vente, dépôt/retrait)
+— la quantité détenue est la somme de tous les mouvements. Aucune configuration nécessaire
+au-delà de `HEALTH_DB_*`.
 
-Prix en direct **si un identifiant est renseigné** sur la sous-catégorie :
+Prix en direct **si un identifiant est renseigné** sur la possession :
 
 - **Crypto** : identifiant CoinGecko (ex. `solana`, `bitcoin` — visible dans l'URL de la page de
   la crypto sur coingecko.com), prix récupéré directement en EUR. Pas de clé API requise.
@@ -191,10 +194,10 @@ Prix en direct **si un identifiant est renseigné** sur la sous-catégorie :
 - **Cash** : la quantité est directement le montant dans la devise choisie à la création
   (EUR/USD/GBP/CHF), convertie en EUR.
 
-Une sous-catégorie sans identifiant configuré (ou dont la récupération échoue) reste affichée
-avec sa quantité mais sans valorisation — elle n'est pas comptée dans le total, plutôt que
-d'afficher un chiffre inventé. Les prix sont mis en cache 10 minutes (1h pour les taux de
-change) pour ne pas solliciter les APIs à chaque visite.
+Une possession sans identifiant configuré (ou dont la récupération échoue) reste affichée avec
+sa quantité mais sans valorisation — elle n'est pas comptée dans le total, plutôt que d'afficher
+un chiffre inventé. Les prix sont mis en cache 10 minutes (1h pour les taux de change) pour ne
+pas solliciter les APIs à chaque visite.
 
 ## Scalabilité / évolutions prévues
 

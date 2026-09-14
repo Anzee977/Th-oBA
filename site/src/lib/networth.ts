@@ -1,4 +1,4 @@
-import { NetworthAssetRow, NetworthCategory } from "@/lib/healthDb";
+import { NetworthCategory } from "@/lib/healthDb";
 
 type CacheEntry<T> = { fetchedAt: number; value: T };
 
@@ -104,22 +104,30 @@ export type AssetValuation = {
 
 const UNPRICED: AssetValuation = { unitPriceEur: null, valueEur: null, priced: false };
 
-// Valorise une liste d'actifs en EUR. Crypto : CoinGecko direct en EUR. Tradfi : cours natif
-// (Yahoo) converti en EUR via le taux de change. Cash : la quantité EST le montant dans
-// `asset.currency`, converti en EUR. Un actif sans `symbol` configuré (ou dont la récupération
-// échoue) reste sans valorisation plutôt que d'afficher un chiffre inventé.
+export type HoldingForValuation = {
+  id: number;
+  category: NetworthCategory;
+  symbol: string | null;
+  currency: string;
+  quantity: number;
+};
+
+// Valorise une liste de possessions en EUR. Crypto : CoinGecko direct en EUR. Tradfi : cours
+// natif (Yahoo) converti en EUR via le taux de change. Cash : la quantité EST le montant dans
+// `holding.currency`, converti en EUR. Une possession sans `symbol` configuré (ou dont la
+// récupération échoue) reste sans valorisation plutôt que d'afficher un chiffre inventé.
 export async function computeValuations(
-  assets: NetworthAssetRow[],
+  holdings: HoldingForValuation[],
 ): Promise<Map<number, AssetValuation>> {
   const result = new Map<number, AssetValuation>();
 
   const cryptoIds = Array.from(
-    new Set(assets.filter((a) => a.category === "crypto" && a.symbol).map((a) => a.symbol as string)),
+    new Set(holdings.filter((h) => h.category === "crypto" && h.symbol).map((h) => h.symbol as string)),
   );
   const cryptoPrices = await fetchCryptoPricesEur(cryptoIds);
 
   const stockTickers = Array.from(
-    new Set(assets.filter((a) => a.category === "tradfi" && a.symbol).map((a) => a.symbol as string)),
+    new Set(holdings.filter((h) => h.category === "tradfi" && h.symbol).map((h) => h.symbol as string)),
   );
   const stockQuoteEntries = await Promise.all(
     stockTickers.map(async (t) => [t, await fetchStockQuote(t)] as const),
@@ -130,47 +138,41 @@ export async function computeValuations(
   for (const [, quote] of stockQuoteEntries) {
     if (quote) currenciesNeeded.add(quote.currency);
   }
-  for (const a of assets) {
-    if (a.category === "cash") currenciesNeeded.add(a.currency);
+  for (const h of holdings) {
+    if (h.category === "cash") currenciesNeeded.add(h.currency);
   }
   const fxEntries = await Promise.all(
     Array.from(currenciesNeeded).map(async (c) => [c, await fetchFxRateToEur(c)] as const),
   );
   const fxRates = new Map(fxEntries);
 
-  for (const a of assets) {
-    if (a.category === "crypto") {
-      const price = a.symbol ? cryptoPrices.get(a.symbol) ?? null : null;
+  for (const h of holdings) {
+    if (h.category === "crypto") {
+      const price = h.symbol ? cryptoPrices.get(h.symbol) ?? null : null;
       result.set(
-        a.id,
+        h.id,
         price != null
-          ? { unitPriceEur: price, valueEur: price * a.quantity, priced: true }
+          ? { unitPriceEur: price, valueEur: price * h.quantity, priced: true }
           : UNPRICED,
       );
-    } else if (a.category === "tradfi") {
-      const quote = a.symbol ? stockQuotes.get(a.symbol) ?? null : null;
+    } else if (h.category === "tradfi") {
+      const quote = h.symbol ? stockQuotes.get(h.symbol) ?? null : null;
       const rate = quote ? fxRates.get(quote.currency) ?? null : null;
       const unitPriceEur = quote && rate != null ? quote.price * rate : null;
       result.set(
-        a.id,
+        h.id,
         unitPriceEur != null
-          ? { unitPriceEur, valueEur: unitPriceEur * a.quantity, priced: true }
+          ? { unitPriceEur, valueEur: unitPriceEur * h.quantity, priced: true }
           : UNPRICED,
       );
     } else {
-      const rate = fxRates.get(a.currency) ?? (a.currency === "EUR" ? 1 : null);
+      const rate = fxRates.get(h.currency) ?? (h.currency === "EUR" ? 1 : null);
       result.set(
-        a.id,
-        rate != null ? { unitPriceEur: rate, valueEur: rate * a.quantity, priced: true } : UNPRICED,
+        h.id,
+        rate != null ? { unitPriceEur: rate, valueEur: rate * h.quantity, priced: true } : UNPRICED,
       );
     }
   }
 
   return result;
 }
-
-export const NETWORTH_CATEGORIES: { id: NetworthCategory; label: string }[] = [
-  { id: "crypto", label: "Crypto" },
-  { id: "tradfi", label: "Trade Fi" },
-  { id: "cash", label: "Cash" },
-];

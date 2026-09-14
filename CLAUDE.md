@@ -61,24 +61,32 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
     `node:22-alpine` (était `node:20-alpine`) pour cette raison.
 
 ### Page Net Worth (`/networth`)
-- Patrimoine réparti en 3 catégories fixes en dur dans le code (`crypto`, `tradfi`, `cash`,
-  voir `NetworthCategory` dans `site/src/lib/healthDb.ts`) — pas question de les rendre
-  configurables, c'est un choix délibéré (demande explicite de Reza). Sous-catégories libres
-  (`networth_assets`) + historique de mouvements signés (`networth_transactions`,
-  positif = achat/dépôt, négatif = vente/retrait ; la quantité détenue = `SUM(quantity)`).
+- **3 niveaux, pas 2** : catégorie fixe en dur dans le code (`crypto`/`tradfi`/`cash`, voir
+  `NetworthCategory` dans `site/src/lib/healthDb.ts` — pas question de les rendre configurables,
+  choix délibéré de Reza) → **contenant** libre (`networth_containers`, ex. "Ledger", "Trade
+  Republic", "BNP" — juste un nom, pas de symbole/devise ici) → **possession** détenue dedans
+  (`networth_holdings`, ex. "Solana" dans "Ledger" — nom + `symbol` optionnel pour le prix en
+  direct + `currency`) → historique de mouvements signés (`networth_transactions`, positif =
+  achat/dépôt, négatif = vente/retrait ; la quantité détenue = `SUM(quantity)`). Cascade DELETE
+  à chaque niveau (supprimer un contenant supprime ses possessions et tout leur historique).
+  Première version (même session) n'avait que 2 niveaux (catégorie → possession directe) ; Reza
+  a demandé le niveau contenant en plus pour représenter où chaque possession se trouve
+  physiquement (wallet, broker, banque) — restructuration complète du schéma le jour même,
+  aucune donnée réelle perdue (uniquement des données de test).
 - **Aucun coût de base (`unit_price`) stocké** : demande explicite était juste "ajouter/retirer
   des possessions" + "prix en direct dans le meilleur des cas", pas de suivi de P&L/plus-value —
   ne pas ajouter cette fonctionnalité sans qu'elle soit redemandée.
 - Prix en direct, tous sans clé API : CoinGecko (`simple/price?vs_currencies=eur`) pour crypto,
   Yahoo Finance (endpoint public non officiel `query1.finance.yahoo.com/v8/finance/chart/<ticker>`)
   pour tradfi, Frankfurter (BCE) pour la conversion de devises. Logique + cache mémoire (10 min
-  prix, 1h FX) dans `site/src/lib/networth.ts`. Une sous-catégorie sans `symbol` configuré (ou
-  dont le fetch échoue) reste sans valorisation plutôt que d'inventer un chiffre — pas comptée
-  dans le total.
-- **Testé en conditions réelles le 2026-09-14** directement sur le VPS (création d'actifs
-  crypto/tradfi/cash de test via `curl` authentifié, ajout/suppression de mouvements, vérification
-  du rendu de `/networth` et du calcul du total) puis nettoyé (aucune donnée de test restée en
-  base). Les 3 APIs (CoinGecko, Yahoo Finance, Frankfurter) répondent correctement depuis ce VPS.
+  prix, 1h FX) dans `site/src/lib/networth.ts`. Une possession sans `symbol` configuré (ou dont
+  le fetch échoue) reste sans valorisation plutôt que d'inventer un chiffre — pas comptée dans
+  le total (ni dans le sous-total de son contenant/catégorie).
+- **Testé en conditions réelles le 2026-09-14** directement sur le VPS (création de contenants +
+  possessions crypto/tradfi/cash de test via `curl` authentifié, ajout de mouvements, vérification
+  du rendu de `/networth`, du calcul des totaux à tous les niveaux, de l'export CSV, et des
+  cascades DELETE) puis nettoyé (aucune donnée de test restée en base). Les 3 APIs (CoinGecko,
+  Yahoo Finance, Frankfurter) répondent correctement depuis ce VPS.
 
 ## Sécurité — à ne jamais committer
 

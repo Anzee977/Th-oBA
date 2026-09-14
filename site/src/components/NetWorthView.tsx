@@ -2,55 +2,23 @@
 
 import { useState } from "react";
 import { BanknoteIcon, PlusIcon, TrendingUpIcon, WalletIcon, ZapIcon } from "./icons";
-import NetWorthAssetCard, { AssetView, NetworthCategory, TransactionView } from "./NetWorthAssetCard";
+import NetWorthContainerCard, { ContainerView } from "./NetWorthContainerCard";
+import { formatEur, HoldingView, NetworthCategory, TransactionView } from "./NetWorthHoldingCard";
 
-const CATEGORY_META: Record<
-  NetworthCategory,
-  { label: string; icon: React.ReactNode; statClass: string; symbolLabel: string | null; symbolPlaceholder: string; symbolHint: string }
-> = {
-  crypto: {
-    label: "Crypto",
-    icon: <ZapIcon size={16} />,
-    statClass: "warning",
-    symbolLabel: "Identifiant CoinGecko (optionnel)",
-    symbolPlaceholder: "ex : solana, bitcoin",
-    symbolHint: "Cherche la crypto sur coingecko.com — l'identifiant est dans l'URL de sa page.",
-  },
-  tradfi: {
-    label: "Trade Fi",
-    icon: <TrendingUpIcon size={16} />,
-    statClass: "info",
-    symbolLabel: "Ticker (optionnel)",
-    symbolPlaceholder: "ex : KO, AAPL, MC.PA",
-    symbolHint: "Symbole boursier Yahoo Finance (ajoute le suffixe d'échange hors USA, ex. .PA pour Paris).",
-  },
-  cash: {
-    label: "Cash",
-    icon: <BanknoteIcon size={16} />,
-    statClass: "success",
-    symbolLabel: null,
-    symbolPlaceholder: "",
-    symbolHint: "",
-  },
+const CATEGORY_META: Record<NetworthCategory, { label: string; icon: React.ReactNode; statClass: string }> = {
+  crypto: { label: "Crypto", icon: <ZapIcon size={16} />, statClass: "warning" },
+  tradfi: { label: "Trade Fi", icon: <TrendingUpIcon size={16} />, statClass: "info" },
+  cash: { label: "Cash", icon: <BanknoteIcon size={16} />, statClass: "success" },
 };
 
-const CURRENCIES = ["EUR", "USD", "GBP", "CHF"];
-
-function formatEur(value: number): string {
-  return value.toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 });
-}
-
-function NewAssetForm({
+function NewContainerForm({
   category,
   onCreated,
 }: {
   category: NetworthCategory;
-  onCreated: (asset: AssetView) => void;
+  onCreated: (container: ContainerView) => void;
 }) {
-  const meta = CATEGORY_META[category];
   const [name, setName] = useState("");
-  const [symbol, setSymbol] = useState("");
-  const [currency, setCurrency] = useState("EUR");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,21 +28,15 @@ function NewAssetForm({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/networth/assets", {
+      const res = await fetch("/api/networth/containers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category,
-          name,
-          symbol: category === "cash" ? null : symbol,
-          currency: category === "cash" ? currency : undefined,
-        }),
+        body: JSON.stringify({ category, name }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Échec.");
-      onCreated({ ...data.asset, quantity: 0, unitPriceEur: null, valueEur: null, priced: false });
+      onCreated(data.container);
       setName("");
-      setSymbol("");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -84,68 +46,60 @@ function NewAssetForm({
 
   return (
     <div style={{ marginTop: 14 }}>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         <input
           type="text"
-          placeholder="Nom de la sous-catégorie"
+          placeholder="Nouvelle sous-catégorie (ex : Ledger, Trade Republic, BNP)"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          style={{ width: 180 }}
+          style={{ width: 280 }}
         />
-        {meta.symbolLabel ? (
-          <input
-            type="text"
-            placeholder={meta.symbolPlaceholder}
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
-            style={{ width: 180 }}
-          />
-        ) : (
-          <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        )}
         <button type="submit" className="btn-secondary" disabled={loading || !name.trim()}>
           <PlusIcon size={14} /> Ajouter
         </button>
       </form>
-      {meta.symbolHint && (
-        <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-          {meta.symbolHint}
-        </p>
-      )}
       {error && <p className="error">{error}</p>}
     </div>
   );
 }
 
 export default function NetWorthView({
-  initialAssets,
+  initialContainers,
+  initialHoldings,
   initialTransactions,
 }: {
-  initialAssets: AssetView[];
+  initialContainers: ContainerView[];
+  initialHoldings: HoldingView[];
   initialTransactions: TransactionView[];
 }) {
-  const [assets, setAssets] = useState<AssetView[]>(initialAssets);
+  const [containers, setContainers] = useState<ContainerView[]>(initialContainers);
+  const [holdings, setHoldings] = useState<HoldingView[]>(initialHoldings);
   const [transactions, setTransactions] = useState<TransactionView[]>(initialTransactions);
 
-  function addAsset(asset: AssetView) {
-    setAssets((prev) => [...prev, asset]);
+  function addContainer(container: ContainerView) {
+    setContainers((prev) => [...prev, container]);
   }
 
-  function removeAsset(id: number) {
-    setAssets((prev) => prev.filter((a) => a.id !== id));
-    setTransactions((prev) => prev.filter((t) => t.assetId !== id));
+  function removeContainer(id: number) {
+    const holdingIds = new Set(holdings.filter((h) => h.containerId === id).map((h) => h.id));
+    setContainers((prev) => prev.filter((c) => c.id !== id));
+    setHoldings((prev) => prev.filter((h) => h.containerId !== id));
+    setTransactions((prev) => prev.filter((t) => !holdingIds.has(t.holdingId)));
+  }
+
+  function addHolding(holding: HoldingView) {
+    setHoldings((prev) => [...prev, holding]);
+  }
+
+  function removeHolding(id: number) {
+    setHoldings((prev) => prev.filter((h) => h.id !== id));
+    setTransactions((prev) => prev.filter((t) => t.holdingId !== id));
   }
 
   function addTransaction(tx: TransactionView) {
     setTransactions((prev) => [tx, ...prev]);
-    setAssets((prev) =>
-      prev.map((a) => (a.id === tx.assetId ? { ...a, quantity: a.quantity + tx.quantity } : a)),
+    setHoldings((prev) =>
+      prev.map((h) => (h.id === tx.holdingId ? { ...h, quantity: h.quantity + tx.quantity } : h)),
     );
   }
 
@@ -153,14 +107,14 @@ export default function NetWorthView({
     const tx = transactions.find((t) => t.id === txId);
     setTransactions((prev) => prev.filter((t) => t.id !== txId));
     if (tx) {
-      setAssets((prev) =>
-        prev.map((a) => (a.id === tx.assetId ? { ...a, quantity: a.quantity - tx.quantity } : a)),
+      setHoldings((prev) =>
+        prev.map((h) => (h.id === tx.holdingId ? { ...h, quantity: h.quantity - tx.quantity } : h)),
       );
     }
   }
 
-  const grandTotal = assets.reduce((sum, a) => sum + (a.priced && a.valueEur != null ? a.valueEur : 0), 0);
-  const hasUnpriced = assets.some((a) => !a.priced);
+  const grandTotal = holdings.reduce((sum, h) => sum + (h.priced && h.valueEur != null ? h.valueEur : 0), 0);
+  const hasUnpriced = holdings.some((h) => !h.priced);
 
   return (
     <div>
@@ -174,16 +128,20 @@ export default function NetWorthView({
         <p className="chart-highlight">{formatEur(grandTotal)}</p>
         {hasUnpriced && (
           <p className="muted" style={{ marginTop: -10 }}>
-            Certaines sous-catégories sans prix en direct ne sont pas comptées dans ce total.
+            Certaines possessions sans prix en direct ne sont pas comptées dans ce total.
           </p>
         )}
       </div>
 
       {(Object.keys(CATEGORY_META) as NetworthCategory[]).map((category) => {
         const meta = CATEGORY_META[category];
-        const categoryAssets = assets.filter((a) => a.category === category);
-        const categoryTotal = categoryAssets.reduce(
-          (sum, a) => sum + (a.priced && a.valueEur != null ? a.valueEur : 0),
+        const categoryContainers = containers.filter((c) => c.category === category);
+        const categoryHoldingIds = new Set(
+          holdings.filter((h) => categoryContainers.some((c) => c.id === h.containerId)).map((h) => h.id),
+        );
+        const categoryTotal = holdings.reduce(
+          (sum, h) =>
+            sum + (categoryHoldingIds.has(h.id) && h.priced && h.valueEur != null ? h.valueEur : 0),
           0,
         );
 
@@ -197,27 +155,30 @@ export default function NetWorthView({
               </span>
             </div>
 
-            {categoryAssets.length === 0 ? (
+            {categoryContainers.length === 0 ? (
               <p className="muted">Aucune sous-catégorie pour l&apos;instant.</p>
             ) : (
               <ul className="activity-list">
-                {categoryAssets.map((asset) => (
-                  <NetWorthAssetCard
-                    key={asset.id}
-                    asset={asset}
-                    transactions={transactions.filter((t) => t.assetId === asset.id)}
+                {categoryContainers.map((container) => (
+                  <NetWorthContainerCard
+                    key={container.id}
+                    container={container}
+                    holdings={holdings.filter((h) => h.containerId === container.id)}
+                    transactions={transactions}
+                    onAddHolding={addHolding}
+                    onDeleteHolding={removeHolding}
                     onAddTransaction={addTransaction}
                     onDeleteTransaction={removeTransaction}
-                    onDeleteAsset={async () => {
-                      removeAsset(asset.id);
-                      await fetch(`/api/networth/assets/${asset.id}`, { method: "DELETE" });
+                    onDeleteContainer={async () => {
+                      removeContainer(container.id);
+                      await fetch(`/api/networth/containers/${container.id}`, { method: "DELETE" });
                     }}
                   />
                 ))}
               </ul>
             )}
 
-            <NewAssetForm category={category} onCreated={addAsset} />
+            <NewContainerForm category={category} onCreated={addContainer} />
           </div>
         );
       })}

@@ -3,11 +3,11 @@ import { addNetworthTransaction } from "@/lib/healthDb";
 
 export async function POST(request: NextRequest) {
   try {
-    const { assetId, quantity, date, note } = await request.json();
+    const { holdingId, quantity, date, note } = await request.json();
 
-    const cleanAssetId = Number(assetId);
-    if (!Number.isInteger(cleanAssetId)) {
-      return NextResponse.json({ error: "Sous-catégorie invalide." }, { status: 400 });
+    const cleanHoldingId = Number(holdingId);
+    if (!Number.isInteger(cleanHoldingId)) {
+      return NextResponse.json({ error: "Possession invalide." }, { status: 400 });
     }
     const cleanQuantity = Number(quantity);
     if (!Number.isFinite(cleanQuantity) || cleanQuantity === 0) {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const transaction = await addNetworthTransaction({
-      assetId: cleanAssetId,
+      holdingId: cleanHoldingId,
       quantity: cleanQuantity,
       date,
       note: typeof note === "string" && note.trim() ? note.trim() : null,

@@ -54,7 +54,7 @@ const DATASETS: Record<
   },
   networth: {
     filename: "networth.csv",
-    headers: ["category", "name", "symbol", "currency", "quantity", "date", "note"],
+    headers: ["category", "container", "holding", "symbol", "currency", "quantity", "date", "note"],
     fetch: getAllNetworthTransactionsForExport,
   },
 };

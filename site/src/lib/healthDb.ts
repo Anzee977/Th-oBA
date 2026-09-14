@@ -164,33 +164,45 @@ async function ensureSchema(): Promise<void> {
           INDEX idx_weight_logs_date (date)
         )
       `);
-      // Sous-catégories de patrimoine (ex: "Solana", "Coca-Cola", "Compte courant BNP"),
-      // regroupées sous une des 3 catégories fixes (crypto / tradfi / cash). `symbol` sert
-      // à récupérer le prix en direct (identifiant CoinGecko pour crypto, ticker Yahoo
-      // Finance pour tradfi) ; `currency` n'est utilisé que pour la catégorie cash (voir
-      // lib/networth.ts).
+      // Sous-catégories de patrimoine = "contenants" (ex: "Ledger", "Binance", "Trade
+      // Republic", "Compte courant BNP"), regroupés sous une des 3 catégories fixes
+      // (crypto / tradfi / cash). Voir lib/networth.ts pour la valorisation en direct.
       await p.query(`
-        CREATE TABLE IF NOT EXISTS networth_assets (
+        CREATE TABLE IF NOT EXISTS networth_containers (
           id INT AUTO_INCREMENT PRIMARY KEY,
           category VARCHAR(16) NOT NULL,
           name VARCHAR(100) NOT NULL,
-          symbol VARCHAR(32) NULL,
-          currency VARCHAR(8) NOT NULL DEFAULT 'EUR',
           created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      // Historique des ajouts/retraits de possessions. `quantity` signée (positif = achat/
-      // dépôt, négatif = vente/retrait) ; la quantité détenue actuelle = SUM(quantity).
+      // Possessions détenues dans un contenant (ex: "Solana" dans "Ledger", "Coca-Cola" dans
+      // "Trade Republic"). `symbol` sert à récupérer le prix en direct (identifiant CoinGecko
+      // pour crypto, ticker Yahoo Finance pour tradfi) ; `currency` n'est utilisé que pour la
+      // catégorie cash.
+      await p.query(`
+        CREATE TABLE IF NOT EXISTS networth_holdings (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          container_id INT NOT NULL,
+          name VARCHAR(100) NOT NULL,
+          symbol VARCHAR(32) NULL,
+          currency VARCHAR(8) NOT NULL DEFAULT 'EUR',
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_networth_holdings_container (container_id),
+          FOREIGN KEY (container_id) REFERENCES networth_containers(id) ON DELETE CASCADE
+        )
+      `);
+      // Historique des ajouts/retraits sur une possession. `quantity` signée (positif =
+      // achat/dépôt, négatif = vente/retrait) ; la quantité détenue actuelle = SUM(quantity).
       await p.query(`
         CREATE TABLE IF NOT EXISTS networth_transactions (
           id INT AUTO_INCREMENT PRIMARY KEY,
-          asset_id INT NOT NULL,
+          holding_id INT NOT NULL,
           quantity DECIMAL(24,8) NOT NULL,
           date DATE NOT NULL,
           note VARCHAR(255) NULL,
           created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          INDEX idx_networth_tx_asset (asset_id),
-          FOREIGN KEY (asset_id) REFERENCES networth_assets(id) ON DELETE CASCADE
+          INDEX idx_networth_tx_holding (holding_id),
+          FOREIGN KEY (holding_id) REFERENCES networth_holdings(id) ON DELETE CASCADE
         )
       `);
     })();
@@ -1175,36 +1187,73 @@ export async function getLatestWeightKg(): Promise<number | null> {
 }
 
 // ---------------------------------------------------------------------------
-// Net Worth (patrimoine) : catégories fixes (crypto / tradfi / cash), sous-catégories
-// libres, historique d'ajouts/retraits. Voir lib/networth.ts pour la valorisation en direct.
+// Net Worth (patrimoine) : catégories fixes (crypto / tradfi / cash) > contenants libres
+// (ex: "Ledger", "Trade Republic", "BNP") > possessions détenues dedans, avec historique
+// d'ajouts/retraits. Voir lib/networth.ts pour la valorisation en direct.
 // ---------------------------------------------------------------------------
 
 export type NetworthCategory = "crypto" | "tradfi" | "cash";
 
-export type NetworthAssetRow = {
+export type NetworthContainerRow = {
   id: number;
   category: NetworthCategory;
+  name: string;
+};
+
+export async function listNetworthContainers(): Promise<NetworthContainerRow[]> {
+  if (!isHealthDbEnabled()) return [];
+  await ensureSchema();
+  const p = getPool();
+  const [rows] = await p.query(
+    `SELECT id, category, name FROM networth_containers ORDER BY category ASC, name ASC`,
+  );
+  return (rows as any[]).map((r) => ({ id: r.id, category: r.category, name: r.name }));
+}
+
+export async function createNetworthContainer(data: {
+  category: NetworthCategory;
+  name: string;
+}): Promise<NetworthContainerRow> {
+  await ensureSchema();
+  const p = getPool();
+  const [result] = await p.query(`INSERT INTO networth_containers (category, name) VALUES (?, ?)`, [
+    data.category,
+    data.name,
+  ]);
+  return { id: (result as any).insertId, category: data.category, name: data.name };
+}
+
+export async function deleteNetworthContainer(id: number): Promise<void> {
+  if (!isHealthDbEnabled()) return;
+  await ensureSchema();
+  const p = getPool();
+  await p.query(`DELETE FROM networth_containers WHERE id = ?`, [id]);
+}
+
+export type NetworthHoldingRow = {
+  id: number;
+  containerId: number;
   name: string;
   symbol: string | null;
   currency: string;
   quantity: number;
 };
 
-export async function listNetworthAssets(): Promise<NetworthAssetRow[]> {
+export async function listNetworthHoldings(): Promise<NetworthHoldingRow[]> {
   if (!isHealthDbEnabled()) return [];
   await ensureSchema();
   const p = getPool();
   const [rows] = await p.query(
-    `SELECT a.id, a.category, a.name, a.symbol, a.currency,
+    `SELECT h.id, h.container_id, h.name, h.symbol, h.currency,
             COALESCE(SUM(t.quantity), 0) AS quantity
-     FROM networth_assets a
-     LEFT JOIN networth_transactions t ON t.asset_id = a.id
-     GROUP BY a.id, a.category, a.name, a.symbol, a.currency
-     ORDER BY a.category ASC, a.name ASC`,
+     FROM networth_holdings h
+     LEFT JOIN networth_transactions t ON t.holding_id = h.id
+     GROUP BY h.id, h.container_id, h.name, h.symbol, h.currency
+     ORDER BY h.name ASC`,
   );
   return (rows as any[]).map((r) => ({
     id: r.id,
-    category: r.category,
+    containerId: r.container_id,
     name: r.name,
     symbol: r.symbol,
     currency: r.currency,
@@ -1212,21 +1261,21 @@ export async function listNetworthAssets(): Promise<NetworthAssetRow[]> {
   }));
 }
 
-export async function createNetworthAsset(data: {
-  category: NetworthCategory;
+export async function createNetworthHolding(data: {
+  containerId: number;
   name: string;
   symbol: string | null;
   currency: string;
-}): Promise<NetworthAssetRow> {
+}): Promise<NetworthHoldingRow> {
   await ensureSchema();
   const p = getPool();
   const [result] = await p.query(
-    `INSERT INTO networth_assets (category, name, symbol, currency) VALUES (?, ?, ?, ?)`,
-    [data.category, data.name, data.symbol, data.currency],
+    `INSERT INTO networth_holdings (container_id, name, symbol, currency) VALUES (?, ?, ?, ?)`,
+    [data.containerId, data.name, data.symbol, data.currency],
   );
   return {
     id: (result as any).insertId,
-    category: data.category,
+    containerId: data.containerId,
     name: data.name,
     symbol: data.symbol,
     currency: data.currency,
@@ -1234,16 +1283,16 @@ export async function createNetworthAsset(data: {
   };
 }
 
-export async function deleteNetworthAsset(id: number): Promise<void> {
+export async function deleteNetworthHolding(id: number): Promise<void> {
   if (!isHealthDbEnabled()) return;
   await ensureSchema();
   const p = getPool();
-  await p.query(`DELETE FROM networth_assets WHERE id = ?`, [id]);
+  await p.query(`DELETE FROM networth_holdings WHERE id = ?`, [id]);
 }
 
 export type NetworthTransactionRow = {
   id: number;
-  assetId: number;
+  holdingId: number;
   quantity: number;
   date: string;
   note: string | null;
@@ -1254,11 +1303,11 @@ export async function listAllNetworthTransactions(): Promise<NetworthTransaction
   await ensureSchema();
   const p = getPool();
   const [rows] = await p.query(
-    `SELECT id, asset_id, quantity, date, note FROM networth_transactions ORDER BY date DESC, id DESC`,
+    `SELECT id, holding_id, quantity, date, note FROM networth_transactions ORDER BY date DESC, id DESC`,
   );
   return (rows as any[]).map((r) => ({
     id: r.id,
-    assetId: r.asset_id,
+    holdingId: r.holding_id,
     quantity: Number(r.quantity),
     date: r.date,
     note: r.note,
@@ -1266,7 +1315,7 @@ export async function listAllNetworthTransactions(): Promise<NetworthTransaction
 }
 
 export async function addNetworthTransaction(data: {
-  assetId: number;
+  holdingId: number;
   quantity: number;
   date: string;
   note: string | null;
@@ -1274,12 +1323,12 @@ export async function addNetworthTransaction(data: {
   await ensureSchema();
   const p = getPool();
   const [result] = await p.query(
-    `INSERT INTO networth_transactions (asset_id, quantity, date, note) VALUES (?, ?, ?, ?)`,
-    [data.assetId, data.quantity, data.date, data.note],
+    `INSERT INTO networth_transactions (holding_id, quantity, date, note) VALUES (?, ?, ?, ?)`,
+    [data.holdingId, data.quantity, data.date, data.note],
   );
   return {
     id: (result as any).insertId,
-    assetId: data.assetId,
+    holdingId: data.holdingId,
     quantity: data.quantity,
     date: data.date,
     note: data.note,
@@ -1298,9 +1347,11 @@ export async function getAllNetworthTransactionsForExport(): Promise<Record<stri
   await ensureSchema();
   const p = getPool();
   const [rows] = await p.query(
-    `SELECT a.category, a.name, a.symbol, a.currency, t.quantity, t.date, t.note
+    `SELECT c.category, c.name AS container, h.name AS holding, h.symbol, h.currency,
+            t.quantity, t.date, t.note
      FROM networth_transactions t
-     JOIN networth_assets a ON a.id = t.asset_id
+     JOIN networth_holdings h ON h.id = t.holding_id
+     JOIN networth_containers c ON c.id = h.container_id
      ORDER BY t.date ASC, t.id ASC`,
   );
   return rows as Record<string, unknown>[];

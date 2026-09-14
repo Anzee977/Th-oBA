@@ -6,9 +6,9 @@ import ConfirmDeleteButton from "./ConfirmDeleteButton";
 
 export type NetworthCategory = "crypto" | "tradfi" | "cash";
 
-export type AssetView = {
+export type HoldingView = {
   id: number;
-  category: NetworthCategory;
+  containerId: number;
   name: string;
   symbol: string | null;
   currency: string;
@@ -20,7 +20,7 @@ export type AssetView = {
 
 export type TransactionView = {
   id: number;
-  assetId: number;
+  holdingId: number;
   quantity: number;
   date: string;
   note: string | null;
@@ -32,11 +32,11 @@ const MOVE_LABELS: Record<NetworthCategory, { in: string; out: string }> = {
   cash: { in: "Dépôt", out: "Retrait" },
 };
 
-function formatQuantity(qty: number): string {
+export function formatQuantity(qty: number): string {
   return qty.toLocaleString("fr-FR", { maximumFractionDigits: 8 });
 }
 
-function formatEur(value: number): string {
+export function formatEur(value: number): string {
   return value.toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 });
 }
 
@@ -48,18 +48,20 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function NetWorthAssetCard({
-  asset,
+export default function NetWorthHoldingCard({
+  holding,
+  category,
   transactions,
   onAddTransaction,
   onDeleteTransaction,
-  onDeleteAsset,
+  onDeleteHolding,
 }: {
-  asset: AssetView;
+  holding: HoldingView;
+  category: NetworthCategory;
   transactions: TransactionView[];
   onAddTransaction: (tx: TransactionView) => void;
   onDeleteTransaction: (txId: number) => void;
-  onDeleteAsset: () => Promise<void>;
+  onDeleteHolding: () => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [sign, setSign] = useState<"in" | "out">("in");
@@ -69,7 +71,7 @@ export default function NetWorthAssetCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const labels = MOVE_LABELS[asset.category];
+  const labels = MOVE_LABELS[category];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,7 +84,7 @@ export default function NetWorthAssetCard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          assetId: asset.id,
+          holdingId: holding.id,
           quantity: sign === "in" ? qty : -qty,
           date,
           note: note.trim() || null,
@@ -127,16 +129,16 @@ export default function NetWorthAssetCard({
             <ChevronRightIcon size={14} />
           </span>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 500 }}>{asset.name}</div>
+            <div style={{ fontWeight: 500 }}>{holding.name}</div>
             <div className="muted" style={{ fontSize: 12.5 }}>
-              {formatQuantity(asset.quantity)}
-              {asset.symbol ? ` ${asset.symbol}` : ""}
+              {formatQuantity(holding.quantity)}
+              {holding.symbol ? ` ${holding.symbol}` : ""}
             </div>
           </div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
-          {asset.priced && asset.valueEur != null ? (
-            <div>{formatEur(asset.valueEur)}</div>
+          {holding.priced && holding.valueEur != null ? (
+            <div>{formatEur(holding.valueEur)}</div>
           ) : (
             <div className="muted" style={{ fontSize: 13 }}>Pas de prix en direct</div>
           )}
@@ -204,9 +206,9 @@ export default function NetWorthAssetCard({
 
           <div style={{ marginTop: 10 }}>
             <ConfirmDeleteButton
-              onConfirm={onDeleteAsset}
-              label="Supprimer la sous-catégorie"
-              confirmText="Supprimer cette sous-catégorie et tout son historique ?"
+              onConfirm={onDeleteHolding}
+              label="Supprimer la possession"
+              confirmText="Supprimer cette possession et tout son historique ?"
             />
           </div>
         </div>
