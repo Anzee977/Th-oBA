@@ -50,10 +50,20 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
   récurrents (RRULE, séances déplacées/annulées) via la lib `node-ical`.
 - Cache mémoire côté serveur, 1h de TTL (`site/src/lib/schedule.ts`), pour ne pas spammer le
   serveur de l'université à chaque visite.
-- Sources déclarées dans `SCHEDULE_SOURCES` (`site/src/lib/schedule.ts`) : `ICHEC_ICS_URL` actif
-  et configuré (`site/.env` sur le VPS), `UNIV2_ICS_URL` prévu mais pas encore rempli (Reza n'a
-  pas encore le lien de sa 2e université). **Ajouter une université = juste une variable d'env,
-  aucun code à toucher.**
+- Sources déclarées dans `SCHEDULE_SOURCES` (`site/src/lib/schedule.ts`) : `ICHEC_ICS_URL` et
+  `UNIV2_ICS_URL` (label "ECAM") actifs et configurés (`site/.env` sur le VPS). **Ajouter une
+  université = juste une variable d'env, aucun code à toucher.**
+- **ECAM configuré le 2026-09-14**, testé en conditions réelles (les deux sources apparaissent
+  fusionnées sur `/horaire`). Format différent d'ICHEC mais géré sans changement de code :
+  `LOCATION` présent sur la plupart des `VEVENT` (ex. `LOCATION:2D15`), fuseau horaire nommé
+  `TZID=Europe/Paris` (contre UTC direct chez ICHEC — `node-ical` gère les deux), et **utilise
+  bien `RRULE`** (`FREQ=WEEKLY;COUNT=N;BYDAY=...`) contrairement à ICHEC — la branche
+  `event.rrule` de `getWeekSchedule`, dormante jusque-là, est activement empruntée pour ECAM.
+  Premier lien ECAM fourni (avec token `?t=...`) renvoyait une **erreur 500 côté serveur ECAM**
+  (confirmée aussi dans le navigateur de Reza, pas un souci réseau/format de notre côté) — Reza
+  a fourni un lien alternatif public (`/ics/serie_4MBA11A`, sans token, par groupe/série de
+  cours) qui fonctionne. Si Reza redemande un jour d'utiliser un lien personnel `?t=...` ECAM à
+  la place, commencer par vérifier qu'il ne renvoie plus 500 avant de le configurer.
 - **Testé en conditions réelles le 2026-09-13** contre le vrai flux ICHEC (HYPERPLANNING 2023 -
   0.11.0), directement sur le VPS via `curl` + connexion authentifiée à `/horaire`. Mapping de
   champs confirmé correct, aucun changement de code nécessaire :

@@ -77,7 +77,7 @@ export type ScheduleSource = {
 // correspondante côté serveur). En ajouter une ne demande aucun autre changement de code.
 export const SCHEDULE_SOURCES: ScheduleSource[] = [
   { label: "ICHEC", envVar: "ICHEC_ICS_URL" },
-  { label: "Université 2", envVar: "UNIV2_ICS_URL" },
+  { label: "ECAM", envVar: "UNIV2_ICS_URL" },
 ];
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h
