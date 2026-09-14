@@ -1,23 +1,23 @@
 :root {
-  /* Surfaces — noir chaud, très légèrement ambré plutôt que bleu-noir générique */
-  --bg: #0d0c0a;
-  --bg-elevated: #161310;
-  --bg-elevated-2: #1d1913;
-  --bg-hover: #241f17;
-  --border: #2b2519;
-  --border-strong: #3d3524;
+  /* Surfaces — anthracite froid, neutre plutôt que teinté */
+  --bg: #0a0a0f;
+  --bg-elevated: #131319;
+  --bg-elevated-2: #191a22;
+  --bg-hover: #21222c;
+  --border: #24252f;
+  --border-strong: #33343f;
 
-  /* Text — blanc cassé chaud plutôt que blanc pur */
-  --text: #f3efe6;
-  --text-muted: #a89e8c;
-  --text-faint: #766c5c;
+  /* Text — blanc cassé froid plutôt que blanc pur */
+  --text: #eef0f4;
+  --text-muted: #9a9daa;
+  --text-faint: #6b6e7a;
 
-  /* Accent — or/ambre, signature visuelle de l'app */
-  --accent: #e0a83f;
-  --accent-2: #f3c869;
-  --accent-dim: rgba(224, 168, 63, 0.14);
-  --accent-strong: #f0bc57;
-  --on-accent: #171310;
+  /* Accent — indigo, signature visuelle de l'app */
+  --accent: #6366f1;
+  --accent-2: #818cf8;
+  --accent-dim: rgba(99, 102, 241, 0.16);
+  --accent-strong: #818cf8;
+  --on-accent: #ffffff;
 
   /* Semantic */
   --success: #4ade80;
@@ -26,61 +26,60 @@
   --warning-dim: rgba(239, 131, 84, 0.14);
   --danger: #f2665a;
   --danger-dim: rgba(242, 102, 90, 0.16);
-  --info: #5ec3e8;
-  --info-dim: rgba(94, 195, 232, 0.14);
+  --info: #22d3ee;
+  --info-dim: rgba(34, 211, 238, 0.14);
 
   /* Shape & elevation */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
-  --shadow-sm: 0 1px 2px rgba(13, 10, 8, 0.4);
-  --shadow-md: 0 10px 28px rgba(13, 10, 8, 0.45);
-  --shadow-lg: 0 24px 60px rgba(13, 10, 8, 0.55);
+  --shadow-sm: 0 1px 2px rgba(4, 4, 8, 0.4);
+  --shadow-md: 0 10px 28px rgba(4, 4, 8, 0.45);
+  --shadow-lg: 0 24px 60px rgba(4, 4, 8, 0.55);
 
   --sidebar-width: 256px;
   --font-sans: system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "SF Mono", monospace;
 }
 
-/* Mode clair — activé via [data-theme="light"] sur <html> (voir ThemeToggle.tsx). Le noir
-   chaud reste le thème par défaut (signature visuelle de l'app) ; le clair est une bascule
-   explicite de l'utilisateur, persistée en localStorage. Mêmes teintes chaudes (crème plutôt
-   que blanc pur, ambre plus soutenu pour rester lisible sur fond clair). */
+/* Mode clair — activé via [data-theme="light"] sur <html> (voir ThemeToggle.tsx). L'anthracite
+   froid reste le thème par défaut (signature visuelle de l'app) ; le clair est une bascule
+   explicite de l'utilisateur, persistée en localStorage. */
 :root[data-theme="light"] {
-  --bg: #faf8f3;
+  --bg: #f7f7fa;
   --bg-elevated: #ffffff;
-  --bg-elevated-2: #f3efe4;
-  --bg-hover: #ece5d5;
-  --border: #e6ddc9;
-  --border-strong: #d6c9a8;
+  --bg-elevated-2: #f0f0f5;
+  --bg-hover: #e9e9f1;
+  --border: #e4e4ec;
+  --border-strong: #d3d3e1;
 
-  --text: #2a2318;
-  --text-muted: #6b6150;
-  --text-faint: #948a72;
+  --text: #16171f;
+  --text-muted: #5c5e6b;
+  --text-faint: #8a8c99;
 
-  --accent: #c98a1f;
-  --accent-2: #e0a83f;
-  --accent-dim: rgba(201, 138, 31, 0.12);
-  --accent-strong: #a86c14;
-  --on-accent: #171310;
+  --accent: #4f46e5;
+  --accent-2: #6366f1;
+  --accent-dim: rgba(79, 70, 229, 0.1);
+  --accent-strong: #4338ca;
+  --on-accent: #ffffff;
 
-  --success: #1f9d55;
-  --success-dim: rgba(31, 157, 85, 0.12);
-  --warning: #c85f2e;
-  --warning-dim: rgba(200, 95, 46, 0.12);
-  --danger: #d1453a;
-  --danger-dim: rgba(209, 69, 58, 0.12);
-  --info: #1f7fa8;
-  --info-dim: rgba(31, 127, 168, 0.12);
+  --success: #059669;
+  --success-dim: rgba(5, 150, 105, 0.1);
+  --warning: #d97706;
+  --warning-dim: rgba(217, 119, 6, 0.1);
+  --danger: #dc2626;
+  --danger-dim: rgba(220, 38, 38, 0.1);
+  --info: #0891b2;
+  --info-dim: rgba(8, 145, 178, 0.1);
 
-  --shadow-sm: 0 1px 2px rgba(42, 37, 28, 0.07);
-  --shadow-md: 0 10px 28px rgba(42, 37, 28, 0.10);
-  --shadow-lg: 0 24px 60px rgba(42, 37, 28, 0.14);
+  --shadow-sm: 0 1px 2px rgba(22, 23, 31, 0.06);
+  --shadow-md: 0 10px 28px rgba(22, 23, 31, 0.08);
+  --shadow-lg: 0 24px 60px rgba(22, 23, 31, 0.12);
 }
 
 :root[data-theme="light"] body {
-  background-image: radial-gradient(1200px 600px at 8% -14%, rgba(201, 138, 31, 0.06), transparent 60%),
-    radial-gradient(900px 480px at 108% 4%, rgba(200, 95, 46, 0.045), transparent 55%);
+  background-image: radial-gradient(1200px 600px at 8% -14%, rgba(79, 70, 229, 0.05), transparent 60%),
+    radial-gradient(900px 480px at 108% 4%, rgba(79, 70, 229, 0.035), transparent 55%);
 }
 
 * {
@@ -101,8 +100,8 @@ body {
   line-height: 1.6;
   letter-spacing: 0;
   background-color: var(--bg);
-  background-image: radial-gradient(1200px 600px at 8% -14%, rgba(224, 168, 63, 0.1), transparent 60%),
-    radial-gradient(900px 480px at 108% 4%, rgba(239, 131, 84, 0.07), transparent 55%);
+  background-image: radial-gradient(1200px 600px at 8% -14%, rgba(99, 102, 241, 0.12), transparent 60%),
+    radial-gradient(900px 480px at 108% 4%, rgba(99, 102, 241, 0.08), transparent 55%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
@@ -215,7 +214,7 @@ select {
   font-weight: 800;
   font-size: 15px;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(224, 168, 63, 0.35);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
 }
 
 .brand-name {
@@ -362,14 +361,14 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 14px rgba(224, 168, 63, 0.25);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
   transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 
 .btn:hover:not(:disabled) {
   filter: brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(224, 168, 63, 0.35);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
 }
 
 .btn:active:not(:disabled) {
@@ -810,7 +809,7 @@ input::placeholder {
 }
 
 mark {
-  background: rgba(224, 168, 63, 0.35);
+  background: rgba(99, 102, 241, 0.35);
   color: var(--text);
   border-radius: 3px;
   padding: 0 2px;
@@ -1320,7 +1319,7 @@ mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(224, 168, 63, 0.3);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
 }
 
 /* ---------- Santé ---------- */

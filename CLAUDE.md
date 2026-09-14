@@ -25,8 +25,13 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
   casser ce pattern.
 - **Pas de todo/calendrier/sport encore** — prévus mais pas commencés, voir `nav.ts` pour les
   entrées commentées à réactiver le moment venu.
+- **Palette** : anthracite froid + accent indigo (`--accent: #6366f1` sombre / `#4f46e5` clair),
+  **pas** ambre/or — changé le 2026-09-14 sur demande explicite de Reza ("les couleurs...
+  palette ambre/or" citée comme LE problème de l'UI). Ne pas revenir à une teinte ambre/dorée
+  pour l'accent de marque sans qu'il le redemande. Les couleurs sémantiques (success/warning/
+  danger/info) n'ont pas été touchées par ce changement (pas identifiées comme un problème).
 - **Thème clair/sombre** : tout `globals.css` est piloté par des custom properties CSS sur
-  `:root` (noir chaud = défaut) redéfinies sous `:root[data-theme="light"]`
+  `:root` (anthracite froid = défaut) redéfinies sous `:root[data-theme="light"]`
   (`ThemeToggle.tsx` pose l'attribut sur `<html>`, persisté en `localStorage`). En ajoutant du
   CSS, toujours utiliser `var(--...)` plutôt qu'une couleur en dur, sinon ça casse le mode
   clair silencieusement.

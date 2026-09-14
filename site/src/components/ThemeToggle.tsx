@@ -10,7 +10,7 @@ function applyTheme(theme: Theme) {
   localStorage.setItem("theme", theme);
   document.querySelector('meta[name="theme-color"]')?.setAttribute(
     "content",
-    theme === "light" ? "#faf8f3" : "#0d0c0a",
+    theme === "light" ? "#f7f7fa" : "#0a0a0f",
   );
 }
 
