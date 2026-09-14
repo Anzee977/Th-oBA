@@ -36,8 +36,13 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Finance",
-    items: [{ href: "/networth", label: "Net Worth" }],
+    label: "Net Worth",
+    items: [
+      { href: "/networth", label: "Vue d'ensemble" },
+      { href: "/networth/crypto", label: "Crypto" },
+      { href: "/networth/tradfi", label: "Trade Fi" },
+      { href: "/networth/cash", label: "Cash" },
+    ],
   },
 ];
 

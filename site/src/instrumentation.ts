@@ -14,6 +14,9 @@ function localDateKey(date: Date): string {
 // 2) les rappels du soir (voir lib/reminders.ts), vérifiés toutes les 5 min et
 //    déclenchés une seule fois par jour à 22h heure locale (TZ=Europe/Brussels,
 //    voir docker/docker-compose.yml).
+// 3) l'instantané quotidien du Net Worth (voir lib/networth.ts) : une fois immédiatement,
+//    puis toutes les heures — chaque exécution met juste à jour la ligne du jour (upsert),
+//    ce qui affine sa valeur au fil de la journée sans multiplier les lignes d'historique.
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { runHealthSync } = await import("./lib/healthSync");
@@ -33,5 +36,9 @@ export async function register() {
       },
       5 * 60 * 1000,
     );
+
+    const { runNetworthSnapshot } = await import("./lib/networth");
+    runNetworthSnapshot();
+    setInterval(runNetworthSnapshot, 60 * 60 * 1000);
   }
 }

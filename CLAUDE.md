@@ -60,8 +60,16 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
   - `node-ical@0.27.1` exige Node ≥22 (`engines`) — `site/Dockerfile` est passé à
     `node:22-alpine` (était `node:20-alpine`) pour cette raison.
 
-### Page Net Worth (`/networth`)
-- **3 niveaux, pas 2** : catégorie fixe en dur dans le code (`crypto`/`tradfi`/`cash`, voir
+### Net Worth (groupe de nav "Net Worth" : `/networth`, `/networth/crypto`, `/networth/tradfi`,
+  `/networth/cash`)
+- **4 pages, pas 1** : `/networth` est un **dashboard résumé en lecture seule** (total, camembert
+  de répartition par catégorie, courbe d'évolution du total dans le temps, fil des derniers
+  mouvements toutes catégories confondues) — c'est `/networth/crypto`, `/networth/tradfi` et
+  `/networth/cash` qui portent la gestion effective (création de contenants/possessions,
+  mouvements). Restructuré ainsi le 2026-09-14 sur demande de Reza : "les catégories crypto/
+  tradfi/cash sous la catégorie Net Worth" + "Net Worth sert à tout résumer avec des
+  graphiques" — la toute première version mettait tout sur une seule page `/networth`.
+- **3 niveaux** : catégorie fixe en dur dans le code (`crypto`/`tradfi`/`cash`, voir
   `NetworthCategory` dans `site/src/lib/healthDb.ts` — pas question de les rendre configurables,
   choix délibéré de Reza) → **contenant** libre (`networth_containers`, ex. "Ledger", "Trade
   Republic", "BNP" — juste un nom, pas de symbole/devise ici) → **possession** détenue dedans
@@ -69,10 +77,12 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
   direct + `currency`) → historique de mouvements signés (`networth_transactions`, positif =
   achat/dépôt, négatif = vente/retrait ; la quantité détenue = `SUM(quantity)`). Cascade DELETE
   à chaque niveau (supprimer un contenant supprime ses possessions et tout leur historique).
-  Première version (même session) n'avait que 2 niveaux (catégorie → possession directe) ; Reza
-  a demandé le niveau contenant en plus pour représenter où chaque possession se trouve
-  physiquement (wallet, broker, banque) — restructuration complète du schéma le jour même,
-  aucune donnée réelle perdue (uniquement des données de test).
+- **`networth_snapshots`** (une ligne par jour, `date` PK) alimente la courbe d'évolution du
+  dashboard : upsertée par `runNetworthSnapshot()` (`site/src/lib/networth.ts`), programmée dans
+  `instrumentation.ts` au démarrage + toutes les heures (upsert = la ligne du jour s'affine au
+  fil de la journée, ne se duplique pas). Elle ne s'écrit que s'il existe au moins une
+  possession (`holdingsCount > 0`), pour ne pas polluer l'historique avec des lignes à 0 avant
+  que Reza n'ait commencé à utiliser la fonctionnalité.
 - **Aucun coût de base (`unit_price`) stocké** : demande explicite était juste "ajouter/retirer
   des possessions" + "prix en direct dans le meilleur des cas", pas de suivi de P&L/plus-value —
   ne pas ajouter cette fonctionnalité sans qu'elle soit redemandée.
@@ -81,12 +91,20 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
   pour tradfi, Frankfurter (BCE) pour la conversion de devises. Logique + cache mémoire (10 min
   prix, 1h FX) dans `site/src/lib/networth.ts`. Une possession sans `symbol` configuré (ou dont
   le fetch échoue) reste sans valorisation plutôt que d'inventer un chiffre — pas comptée dans
-  le total (ni dans le sous-total de son contenant/catégorie).
-- **Testé en conditions réelles le 2026-09-14** directement sur le VPS (création de contenants +
-  possessions crypto/tradfi/cash de test via `curl` authentifié, ajout de mouvements, vérification
-  du rendu de `/networth`, du calcul des totaux à tous les niveaux, de l'export CSV, et des
-  cascades DELETE) puis nettoyé (aucune donnée de test restée en base). Les 3 APIs (CoinGecko,
-  Yahoo Finance, Frankfurter) répondent correctement depuis ce VPS.
+  le total (ni dans le sous-total de son contenant/catégorie/dashboard).
+- **Piège évité** : `NETWORTH_CATEGORY_LABELS`/`_COLORS`/`_STAT_CLASS` vivent dans
+  `site/src/lib/networthCategoryMeta.ts` (données pures, pas de JSX) plutôt que dans un
+  composant `"use client"`, exprès pour rester importables sans ambiguïté depuis les pages
+  serveur (le dashboard) ET les composants client (formulaires de gestion). Les icônes (JSX)
+  restent définies localement dans chaque composant client qui en a besoin.
+- **Testé en conditions réelles le 2026-09-14** directement sur le VPS à chaque étape (création
+  de contenants/possessions de test via `curl` authentifié, mouvements, rendu des 4 pages,
+  calcul des totaux à tous les niveaux, camembert, courbe d'évolution, fil de mouvements, export
+  CSV, cascades DELETE) puis données de test nettoyées. **Reza a créé ses vraies premières
+  données pendant la session** (contenant "Ledger" en crypto, possession "Solana", achat de 5) —
+  ne jamais les supprimer par erreur en confondant avec des données de test futures.
+
+  Les 3 APIs (CoinGecko, Yahoo Finance, Frankfurter) répondent correctement depuis ce VPS.
 
 ## Sécurité — à ne jamais committer
 

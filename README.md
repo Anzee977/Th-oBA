@@ -175,15 +175,24 @@ côté serveur pour éviter de spammer le serveur de l'université à chaque vis
    (`site/src/lib/schedule.ts` → `SCHEDULE_SOURCES`). Pour en ajouter une troisième plus tard,
    ajoute une entrée dans ce tableau.
 
-## 13. Net Worth (page `/networth`)
+## 13. Net Worth (groupe de nav "Net Worth" : `/networth`, `/networth/crypto`,
+`/networth/tradfi`, `/networth/cash`)
 
-Patrimoine à 3 niveaux : 3 **catégories fixes** — **Crypto**, **Trade Fi** (actions/ETF),
-**Cash** — dans lesquelles tu crées librement des **sous-catégories** ("contenants", ex.
-"Ledger", "Binance", "Trade Republic", "BNP"), et dans chaque contenant tu ajoutes les
-**possessions** que tu y détiens (ex. "Solana" et "Bitcoin" dans "Ledger", "Coca-Cola" dans
-"Trade Republic"). Chaque possession a un historique de mouvements (achat/vente, dépôt/retrait)
-— la quantité détenue est la somme de tous les mouvements. Aucune configuration nécessaire
-au-delà de `HEALTH_DB_*`.
+Patrimoine à 3 niveaux, sur 4 pages :
+
+- **`/networth` — Vue d'ensemble** : dashboard résumé. Total général, répartition
+  Crypto/Trade Fi/Cash (camembert), évolution du Net Worth total dans le temps (courbe,
+  instantané quotidien automatique — voir `lib/networth.ts` → `runNetworthSnapshot`,
+  programmé dans `instrumentation.ts`), et le fil des derniers mouvements toutes catégories
+  confondues. Lecture seule.
+- **`/networth/crypto`, `/networth/tradfi`, `/networth/cash`** — une page par catégorie fixe,
+  où se fait la gestion : tu crées librement des **sous-catégories** ("contenants", ex.
+  "Ledger", "Binance", "Trade Republic", "BNP"), et dans chaque contenant tu ajoutes les
+  **possessions** que tu y détiens (ex. "Solana" et "Bitcoin" dans "Ledger", "Coca-Cola" dans
+  "Trade Republic"). Chaque possession a un historique de mouvements (achat/vente, dépôt/
+  retrait) — la quantité détenue est la somme de tous les mouvements.
+
+Aucune configuration nécessaire au-delà de `HEALTH_DB_*`.
 
 Prix en direct **si un identifiant est renseigné** sur la possession :
 

@@ -205,6 +205,19 @@ async function ensureSchema(): Promise<void> {
           FOREIGN KEY (holding_id) REFERENCES networth_holdings(id) ON DELETE CASCADE
         )
       `);
+      // Instantané quotidien du Net Worth total (une ligne par jour, upsertée au fil de la
+      // journée à mesure que les prix bougent — voir lib/networth.ts:runNetworthSnapshot,
+      // programmé dans instrumentation.ts). Sert au graphique d'évolution du dashboard.
+      await p.query(`
+        CREATE TABLE IF NOT EXISTS networth_snapshots (
+          date DATE PRIMARY KEY,
+          total_eur DECIMAL(14,2) NOT NULL,
+          crypto_eur DECIMAL(14,2) NOT NULL,
+          tradfi_eur DECIMAL(14,2) NOT NULL,
+          cash_eur DECIMAL(14,2) NOT NULL,
+          updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
     })();
   }
   await schemaReady;
@@ -1355,4 +1368,88 @@ export async function getAllNetworthTransactionsForExport(): Promise<Record<stri
      ORDER BY t.date ASC, t.id ASC`,
   );
   return rows as Record<string, unknown>[];
+}
+
+export type NetworthRecentTransactionRow = {
+  id: number;
+  category: NetworthCategory;
+  container: string;
+  holding: string;
+  quantity: number;
+  date: string;
+  note: string | null;
+};
+
+// Fil des derniers mouvements toutes catégories confondues, pour le dashboard Net Worth.
+export async function getRecentNetworthTransactions(limit: number): Promise<NetworthRecentTransactionRow[]> {
+  if (!isHealthDbEnabled()) return [];
+  await ensureSchema();
+  const p = getPool();
+  const [rows] = await p.query(
+    `SELECT t.id, c.category, c.name AS container, h.name AS holding, t.quantity, t.date, t.note
+     FROM networth_transactions t
+     JOIN networth_holdings h ON h.id = t.holding_id
+     JOIN networth_containers c ON c.id = h.container_id
+     ORDER BY t.date DESC, t.id DESC
+     LIMIT ?`,
+    [limit],
+  );
+  return (rows as any[]).map((r) => ({
+    id: r.id,
+    category: r.category,
+    container: r.container,
+    holding: r.holding,
+    quantity: Number(r.quantity),
+    date: r.date,
+    note: r.note,
+  }));
+}
+
+export type NetworthSnapshotRow = {
+  date: string;
+  totalEur: number;
+  cryptoEur: number;
+  tradfiEur: number;
+  cashEur: number;
+};
+
+export async function upsertNetworthSnapshot(data: {
+  date: string;
+  totalEur: number;
+  cryptoEur: number;
+  tradfiEur: number;
+  cashEur: number;
+}): Promise<void> {
+  if (!isHealthDbEnabled()) return;
+  await ensureSchema();
+  const p = getPool();
+  await p.query(
+    `INSERT INTO networth_snapshots (date, total_eur, crypto_eur, tradfi_eur, cash_eur)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       total_eur = VALUES(total_eur),
+       crypto_eur = VALUES(crypto_eur),
+       tradfi_eur = VALUES(tradfi_eur),
+       cash_eur = VALUES(cash_eur)`,
+    [data.date, data.totalEur, data.cryptoEur, data.tradfiEur, data.cashEur],
+  );
+}
+
+export async function getNetworthHistory(days: number): Promise<NetworthSnapshotRow[]> {
+  if (!isHealthDbEnabled()) return [];
+  await ensureSchema();
+  const p = getPool();
+  const [rows] = await p.query(
+    `SELECT date, total_eur, crypto_eur, tradfi_eur, cash_eur FROM networth_snapshots
+     WHERE date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+     ORDER BY date ASC`,
+    [days - 1],
+  );
+  return (rows as any[]).map((r) => ({
+    date: r.date,
+    totalEur: Number(r.total_eur),
+    cryptoEur: Number(r.crypto_eur),
+    tradfiEur: Number(r.tradfi_eur),
+    cashEur: Number(r.cash_eur),
+  }));
 }

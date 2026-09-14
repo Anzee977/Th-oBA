@@ -1,4 +1,13 @@
-import { NetworthCategory } from "@/lib/healthDb";
+import {
+  isHealthDbEnabled,
+  listAllNetworthTransactions,
+  listNetworthContainers,
+  listNetworthHoldings,
+  NetworthCategory,
+  NetworthContainerRow,
+  NetworthTransactionRow,
+  upsertNetworthSnapshot,
+} from "@/lib/healthDb";
 
 type CacheEntry<T> = { fetchedAt: number; value: T };
 
@@ -175,4 +184,123 @@ export async function computeValuations(
   }
 
   return result;
+}
+
+export type HoldingView = {
+  id: number;
+  containerId: number;
+  name: string;
+  symbol: string | null;
+  currency: string;
+  quantity: number;
+  unitPriceEur: number | null;
+  valueEur: number | null;
+  priced: boolean;
+};
+
+// Charge et valorise tout ce qui appartient à une catégorie (contenants + possessions +
+// leur historique de mouvements), pour les pages /networth/crypto, /networth/tradfi,
+// /networth/cash.
+export async function getNetworthCategoryData(category: NetworthCategory): Promise<{
+  containers: NetworthContainerRow[];
+  holdings: HoldingView[];
+  transactions: NetworthTransactionRow[];
+}> {
+  const [allContainers, allHoldings, allTransactions] = await Promise.all([
+    listNetworthContainers(),
+    listNetworthHoldings(),
+    listAllNetworthTransactions(),
+  ]);
+
+  const containers = allContainers.filter((c) => c.category === category);
+  const containerIds = new Set(containers.map((c) => c.id));
+  const holdings = allHoldings.filter((h) => containerIds.has(h.containerId));
+  const holdingIds = new Set(holdings.map((h) => h.id));
+  const transactions = allTransactions.filter((t) => holdingIds.has(t.holdingId));
+
+  const valuations = await computeValuations(
+    holdings.map((h) => ({ id: h.id, category, symbol: h.symbol, currency: h.currency, quantity: h.quantity })),
+  );
+  const holdingsView = holdings.map((h) => ({
+    ...h,
+    ...(valuations.get(h.id) ?? { unitPriceEur: null, valueEur: null, priced: false }),
+  }));
+
+  return { containers, holdings: holdingsView, transactions };
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export type NetworthBreakdown = {
+  crypto: number;
+  tradfi: number;
+  cash: number;
+  total: number;
+  holdingsCount: number;
+  hasUnpriced: boolean;
+};
+
+// Calcule le Net Worth actuel (total + sous-total par catégorie), toutes catégories/contenants
+// confondus. Utilisée à la fois par le dashboard (/networth) et par l'instantané quotidien
+// (voir runNetworthSnapshot ci-dessous).
+export async function getCurrentNetworthBreakdown(): Promise<NetworthBreakdown> {
+  const [containers, holdings] = await Promise.all([listNetworthContainers(), listNetworthHoldings()]);
+
+  const containerCategory = new Map(containers.map((c) => [c.id, c.category]));
+  const valuations = await computeValuations(
+    holdings.map((h) => ({
+      id: h.id,
+      category: containerCategory.get(h.containerId) ?? "cash",
+      symbol: h.symbol,
+      currency: h.currency,
+      quantity: h.quantity,
+    })),
+  );
+
+  const totals: Record<NetworthCategory, number> = { crypto: 0, tradfi: 0, cash: 0 };
+  let hasUnpriced = false;
+  for (const h of holdings) {
+    const valuation = valuations.get(h.id);
+    if (!valuation?.priced || valuation.valueEur == null) {
+      hasUnpriced = true;
+      continue;
+    }
+    const category = containerCategory.get(h.containerId);
+    if (category) totals[category] += valuation.valueEur;
+  }
+
+  return {
+    crypto: totals.crypto,
+    tradfi: totals.tradfi,
+    cash: totals.cash,
+    total: totals.crypto + totals.tradfi + totals.cash,
+    holdingsCount: holdings.length,
+    hasUnpriced,
+  };
+}
+
+// Enregistre le Net Worth actuel comme instantané du jour (upsert — plusieurs exécutions le
+// même jour affinent juste la valeur avec les prix les plus récents). Conçue pour tourner en
+// tâche de fond, au démarrage puis toutes les heures (voir instrumentation.ts) — jamais
+// appelée depuis une requête HTTP.
+export async function runNetworthSnapshot(): Promise<void> {
+  if (!isHealthDbEnabled()) return;
+
+  try {
+    const breakdown = await getCurrentNetworthBreakdown();
+    if (breakdown.holdingsCount === 0) return;
+
+    await upsertNetworthSnapshot({
+      date: todayIso(),
+      totalEur: breakdown.total,
+      cryptoEur: breakdown.crypto,
+      tradfiEur: breakdown.tradfi,
+      cashEur: breakdown.cash,
+    });
+    console.log(`[networth-snapshot] OK — ${new Date().toISOString()}`);
+  } catch (error) {
+    console.error("[networth-snapshot] échec :", error);
+  }
 }

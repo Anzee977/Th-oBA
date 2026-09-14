@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { BanknoteIcon, PlusIcon, TrendingUpIcon, WalletIcon, ZapIcon } from "./icons";
+import { BanknoteIcon, PlusIcon, TrendingUpIcon, ZapIcon } from "./icons";
 import NetWorthContainerCard, { ContainerView } from "./NetWorthContainerCard";
 import { formatEur, HoldingView, NetworthCategory, TransactionView } from "./NetWorthHoldingCard";
+import { NETWORTH_CATEGORY_LABELS, NETWORTH_CATEGORY_STAT_CLASS } from "@/lib/networthCategoryMeta";
 
-const CATEGORY_META: Record<NetworthCategory, { label: string; icon: React.ReactNode; statClass: string }> = {
-  crypto: { label: "Crypto", icon: <ZapIcon size={16} />, statClass: "warning" },
-  tradfi: { label: "Trade Fi", icon: <TrendingUpIcon size={16} />, statClass: "info" },
-  cash: { label: "Cash", icon: <BanknoteIcon size={16} />, statClass: "success" },
+const CATEGORY_ICON: Record<NetworthCategory, React.ReactNode> = {
+  crypto: <ZapIcon size={16} />,
+  tradfi: <TrendingUpIcon size={16} />,
+  cash: <BanknoteIcon size={16} />,
 };
 
 function NewContainerForm({
@@ -63,11 +64,13 @@ function NewContainerForm({
   );
 }
 
-export default function NetWorthView({
+export default function NetWorthCategoryView({
+  category,
   initialContainers,
   initialHoldings,
   initialTransactions,
 }: {
+  category: NetworthCategory;
   initialContainers: ContainerView[];
   initialHoldings: HoldingView[];
   initialTransactions: TransactionView[];
@@ -113,19 +116,19 @@ export default function NetWorthView({
     }
   }
 
-  const grandTotal = holdings.reduce((sum, h) => sum + (h.priced && h.valueEur != null ? h.valueEur : 0), 0);
+  const total = holdings.reduce((sum, h) => sum + (h.priced && h.valueEur != null ? h.valueEur : 0), 0);
   const hasUnpriced = holdings.some((h) => !h.priced);
 
   return (
     <div>
       <div className="card">
         <div className="card-header">
-          <span className="stat-icon accent">
-            <WalletIcon size={16} />
+          <span className={`stat-icon ${NETWORTH_CATEGORY_STAT_CLASS[category]}`}>
+            {CATEGORY_ICON[category]}
           </span>
-          <h2>Total</h2>
+          <h2>{NETWORTH_CATEGORY_LABELS[category]}</h2>
         </div>
-        <p className="chart-highlight">{formatEur(grandTotal)}</p>
+        <p className="chart-highlight">{formatEur(total)}</p>
         {hasUnpriced && (
           <p className="muted" style={{ marginTop: -10 }}>
             Certaines possessions sans prix en direct ne sont pas comptées dans ce total.
@@ -133,55 +136,36 @@ export default function NetWorthView({
         )}
       </div>
 
-      {(Object.keys(CATEGORY_META) as NetworthCategory[]).map((category) => {
-        const meta = CATEGORY_META[category];
-        const categoryContainers = containers.filter((c) => c.category === category);
-        const categoryHoldingIds = new Set(
-          holdings.filter((h) => categoryContainers.some((c) => c.id === h.containerId)).map((h) => h.id),
-        );
-        const categoryTotal = holdings.reduce(
-          (sum, h) =>
-            sum + (categoryHoldingIds.has(h.id) && h.priced && h.valueEur != null ? h.valueEur : 0),
-          0,
-        );
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-header">
+          <h2>Sous-catégories</h2>
+        </div>
 
-        return (
-          <div key={category} className="card" style={{ marginTop: 16 }}>
-            <div className="card-header">
-              <span className={`stat-icon ${meta.statClass}`}>{meta.icon}</span>
-              <h2>{meta.label}</h2>
-              <span className="badge" style={{ marginLeft: "auto" }}>
-                {formatEur(categoryTotal)}
-              </span>
-            </div>
+        {containers.length === 0 ? (
+          <p className="muted">Aucune sous-catégorie pour l&apos;instant.</p>
+        ) : (
+          <ul className="activity-list">
+            {containers.map((container) => (
+              <NetWorthContainerCard
+                key={container.id}
+                container={container}
+                holdings={holdings.filter((h) => h.containerId === container.id)}
+                transactions={transactions}
+                onAddHolding={addHolding}
+                onDeleteHolding={removeHolding}
+                onAddTransaction={addTransaction}
+                onDeleteTransaction={removeTransaction}
+                onDeleteContainer={async () => {
+                  removeContainer(container.id);
+                  await fetch(`/api/networth/containers/${container.id}`, { method: "DELETE" });
+                }}
+              />
+            ))}
+          </ul>
+        )}
 
-            {categoryContainers.length === 0 ? (
-              <p className="muted">Aucune sous-catégorie pour l&apos;instant.</p>
-            ) : (
-              <ul className="activity-list">
-                {categoryContainers.map((container) => (
-                  <NetWorthContainerCard
-                    key={container.id}
-                    container={container}
-                    holdings={holdings.filter((h) => h.containerId === container.id)}
-                    transactions={transactions}
-                    onAddHolding={addHolding}
-                    onDeleteHolding={removeHolding}
-                    onAddTransaction={addTransaction}
-                    onDeleteTransaction={removeTransaction}
-                    onDeleteContainer={async () => {
-                      removeContainer(container.id);
-                      await fetch(`/api/networth/containers/${container.id}`, { method: "DELETE" });
-                    }}
-                  />
-                ))}
-              </ul>
-            )}
-
-            <NewContainerForm category={category} onCreated={addContainer} />
-          </div>
-        );
-      })}
+        <NewContainerForm category={category} onCreated={addContainer} />
+      </div>
     </div>
   );
 }
