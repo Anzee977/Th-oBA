@@ -42,6 +42,47 @@
   --font-mono: ui-monospace, "SF Mono", monospace;
 }
 
+/* Mode clair — activé via [data-theme="light"] sur <html> (voir ThemeToggle.tsx). Le noir
+   chaud reste le thème par défaut (signature visuelle de l'app) ; le clair est une bascule
+   explicite de l'utilisateur, persistée en localStorage. Mêmes teintes chaudes (crème plutôt
+   que blanc pur, ambre plus soutenu pour rester lisible sur fond clair). */
+:root[data-theme="light"] {
+  --bg: #faf8f3;
+  --bg-elevated: #ffffff;
+  --bg-elevated-2: #f3efe4;
+  --bg-hover: #ece5d5;
+  --border: #e6ddc9;
+  --border-strong: #d6c9a8;
+
+  --text: #2a2318;
+  --text-muted: #6b6150;
+  --text-faint: #948a72;
+
+  --accent: #c98a1f;
+  --accent-2: #e0a83f;
+  --accent-dim: rgba(201, 138, 31, 0.12);
+  --accent-strong: #a86c14;
+  --on-accent: #171310;
+
+  --success: #1f9d55;
+  --success-dim: rgba(31, 157, 85, 0.12);
+  --warning: #c85f2e;
+  --warning-dim: rgba(200, 95, 46, 0.12);
+  --danger: #d1453a;
+  --danger-dim: rgba(209, 69, 58, 0.12);
+  --info: #1f7fa8;
+  --info-dim: rgba(31, 127, 168, 0.12);
+
+  --shadow-sm: 0 1px 2px rgba(42, 37, 28, 0.07);
+  --shadow-md: 0 10px 28px rgba(42, 37, 28, 0.10);
+  --shadow-lg: 0 24px 60px rgba(42, 37, 28, 0.14);
+}
+
+:root[data-theme="light"] body {
+  background-image: radial-gradient(1200px 600px at 8% -14%, rgba(201, 138, 31, 0.06), transparent 60%),
+    radial-gradient(900px 480px at 108% 4%, rgba(200, 95, 46, 0.045), transparent 55%);
+}
+
 * {
   box-sizing: border-box;
 }

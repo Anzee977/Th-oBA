@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { navGroups } from "@/lib/nav";
 import NotificationToggle from "./NotificationToggle";
+import ThemeToggle from "./ThemeToggle";
 import {
   ActivityIcon,
   CalendarIcon,
@@ -85,6 +86,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+          <ThemeToggle />
           <NotificationToggle />
           <button className="btn-secondary" onClick={handleLogout}>
             <LogOutIcon size={15} />

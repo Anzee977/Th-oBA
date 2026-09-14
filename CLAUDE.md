@@ -25,6 +25,11 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
   casser ce pattern.
 - **Pas de todo/calendrier/sport encore** — prévus mais pas commencés, voir `nav.ts` pour les
   entrées commentées à réactiver le moment venu.
+- **Thème clair/sombre** : tout `globals.css` est piloté par des custom properties CSS sur
+  `:root` (noir chaud = défaut) redéfinies sous `:root[data-theme="light"]`
+  (`ThemeToggle.tsx` pose l'attribut sur `<html>`, persisté en `localStorage`). En ajoutant du
+  CSS, toujours utiliser `var(--...)` plutôt qu'une couleur en dur, sinon ça casse le mode
+  clair silencieusement.
 
 ## État actuel (modules livrés)
 
