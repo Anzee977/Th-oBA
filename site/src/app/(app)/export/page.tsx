@@ -22,6 +22,11 @@ const DATASETS = [
     label: "Activités",
     description: "Historique des activités Garmin synchronisées.",
   },
+  {
+    id: "networth",
+    label: "Net Worth",
+    description: "Chaque mouvement (achat/vente/dépôt/retrait) sur tes sous-catégories crypto/tradfi/cash.",
+  },
 ];
 
 export const dynamic = "force-dynamic";

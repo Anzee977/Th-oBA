@@ -35,6 +35,10 @@ export const navGroups: NavGroup[] = [
       { href: "/export", label: "Export" },
     ],
   },
+  {
+    label: "Finance",
+    items: [{ href: "/networth", label: "Net Worth" }],
+  },
 ];
 
 export const navItems: NavItem[] = navGroups.flatMap((g) => g.items);

@@ -175,6 +175,27 @@ côté serveur pour éviter de spammer le serveur de l'université à chaque vis
    (`site/src/lib/schedule.ts` → `SCHEDULE_SOURCES`). Pour en ajouter une troisième plus tard,
    ajoute une entrée dans ce tableau.
 
+## 13. Net Worth (page `/networth`)
+
+Patrimoine réparti en 3 catégories fixes — **Crypto**, **Trade Fi** (actions/ETF), **Cash** —
+dans lesquelles tu crées librement des sous-catégories (ex. "Solana", "Coca-Cola", "Compte
+courant BNP") et enregistres des mouvements (achat/vente, dépôt/retrait). La quantité détenue
+est la somme de tous les mouvements — aucune configuration nécessaire au-delà de `HEALTH_DB_*`.
+
+Prix en direct **si un identifiant est renseigné** sur la sous-catégorie :
+
+- **Crypto** : identifiant CoinGecko (ex. `solana`, `bitcoin` — visible dans l'URL de la page de
+  la crypto sur coingecko.com), prix récupéré directement en EUR. Pas de clé API requise.
+- **Trade Fi** : ticker Yahoo Finance (ex. `KO`, `AAPL`, ou `MC.PA` pour une valeur cotée à
+  Paris), converti en EUR via le taux de change du jour. Pas de clé API requise.
+- **Cash** : la quantité est directement le montant dans la devise choisie à la création
+  (EUR/USD/GBP/CHF), convertie en EUR.
+
+Une sous-catégorie sans identifiant configuré (ou dont la récupération échoue) reste affichée
+avec sa quantité mais sans valorisation — elle n'est pas comptée dans le total, plutôt que
+d'afficher un chiffre inventé. Les prix sont mis en cache 10 minutes (1h pour les taux de
+change) pour ne pas solliciter les APIs à chaque visite.
+
 ## Scalabilité / évolutions prévues
 
 - **Ajouter une page** : créer un dossier sous `site/src/app/(app)/<page>/`, ajouter l'entrée

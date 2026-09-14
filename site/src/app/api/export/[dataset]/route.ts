@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getAllActivitiesForExport,
   getAllDailyMetrics,
+  getAllNetworthTransactionsForExport,
   getAllNutritionLogsForExport,
   getAllSupplementLogsForExport,
 } from "@/lib/healthDb";
@@ -50,6 +51,11 @@ const DATASETS: Record<
     filename: "activites.csv",
     headers: ["activity_id", "name", "type", "start_time", "duration_minutes", "distance_km", "calories", "avg_hr"],
     fetch: getAllActivitiesForExport,
+  },
+  networth: {
+    filename: "networth.csv",
+    headers: ["category", "name", "symbol", "currency", "quantity", "date", "note"],
+    fetch: getAllNetworthTransactionsForExport,
   },
 };
 

@@ -288,6 +288,27 @@ export function LockIcon({ size = 20 }: IconProps) {
   );
 }
 
+export function WalletIcon({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3" />
+      <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2H5" />
+      <circle cx="16" cy="13" r="1.5" />
+    </svg>
+  );
+}
+
+export function BanknoteIcon({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M6 10v.01" />
+      <path d="M18 14v.01" />
+    </svg>
+  );
+}
+
 export function ScaleIcon({ size = 16 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
