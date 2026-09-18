@@ -41,7 +41,7 @@ export default function LoginPage() {
         <span className="login-lock">
           <LockIcon size={20} />
         </span>
-        <h1>Anzee</h1>
+        <h1>Théo</h1>
         <p className="muted" style={{ marginBottom: 20 }}>
           Entre ton mot de passe pour accéder à ton espace.
         </p>

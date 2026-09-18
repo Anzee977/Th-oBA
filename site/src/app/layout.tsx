@@ -31,7 +31,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Anzee",
+  title: "Théo",
   description: "Espace perso : cours, drive et plus.",
   manifest: "/manifest.json",
   icons: {
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Anzee",
+    title: "Théo",
   },
 };
 

@@ -52,9 +52,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div>
           <div className="sidebar-top">
             <div className="brand">
-              <span className="brand-mark">A</span>
+              <span className="brand-mark">T</span>
               <div>
-                <div className="brand-name">Anzee</div>
+                <div className="brand-name">Théo</div>
                 <div className="brand-sub">Espace perso</div>
               </div>
             </div>
@@ -106,7 +106,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <button className="icon-btn" onClick={() => setOpen(true)} aria-label="Ouvrir le menu">
             <MenuIcon />
           </button>
-          <h1>Anzee</h1>
+          <h1>Théo</h1>
           <span style={{ width: 32 }} />
         </header>
         <main className="content">{children}</main>
