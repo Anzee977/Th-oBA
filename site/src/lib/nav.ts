@@ -32,6 +32,7 @@ export const navGroups: NavGroup[] = [
     label: "Organisation",
     items: [
       { href: "/todo", label: "Todo" },
+      { href: "/mail", label: "Mail" },
       { href: "/export", label: "Export" },
     ],
   },

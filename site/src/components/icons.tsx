@@ -288,6 +288,25 @@ export function LockIcon({ size = 20 }: IconProps) {
   );
 }
 
+export function MailIcon({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 6-10 7L2 6" />
+    </svg>
+  );
+}
+
+export function ArchiveIcon({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <rect x="2" y="3" width="20" height="5" rx="1" />
+      <path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8" />
+      <path d="M10 12h4" />
+    </svg>
+  );
+}
+
 export function WalletIcon({ size = 16 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base}>

@@ -126,10 +126,52 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
 
   Les 3 APIs (CoinGecko, Yahoo Finance, Frankfurter) répondent correctement depuis ce VPS.
 
+### Mail (`/mail`)
+- Lit/traite la boîte Gmail d'un **compte Gmail dédié** (`mailecamtheo@gmail.com`, créé exprès
+  par Reza pour ça — jamais son compte perso). Raison : Reza a un compte étudiant `@ichec.be`
+  qu'il voulait traiter, mais le tenant Microsoft/Entra ICHEC **bloque le consentement
+  utilisateur** pour les permissions Mail (testé et confirmé le 2026-09-14 — écran "Approbation
+  administrateur requise" avec une appli Azure de test). Solution retenue : transférer par règle
+  Outlook les mails voulus vers ce Gmail dédié, que le site lit via l'API Gmail (OAuth Google,
+  pas de restriction équivalente sur un compte perso).
+- OAuth2 Google (`site/src/lib/gmail.ts`) : scope `gmail.modify` (lecture + marquer lu/archiver/
+  corbeille, mais pas suppression définitive ni changement des paramètres du compte). Un seul
+  `refresh_token` stocké en base (`mail_oauth_tokens`, une ligne, `id=1` — usage strictement
+  personnel). `access_token` mis en cache avec expiration, rafraîchi automatiquement.
+- **`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`** dans `site/.env`, projet Google Cloud
+  "Anzee Mail". **Piège vécu le 2026-09-18** : Reza a créé le client OAuth dans un premier
+  projet Google Cloud, puis configuré l'écran de consentement (utilisateurs test, etc.) dans un
+  **second** projet différent par erreur — l'app rejetait tout le monde (`access_denied`) malgré
+  un utilisateur test correctement ajouté, jusqu'à ce qu'un nouveau client OAuth soit recréé
+  dans le bon projet (celui qui a la config Test/Externe). Si ça se reproduit : vérifier sur
+  `console.cloud.google.com` → **APIs et services → Présentation** que le projet actuellement
+  sélectionné a bien un client OAuth configuré (message explicite si ce n'est pas le cas), et
+  que l'API Gmail y est activée (`APIs et services → Bibliothèque` — erreur 403 explicite sinon,
+  vécue aussi le 2026-09-18 après avoir changé de projet).
+- **`SITE_BASE_URL`** (`site/src/lib/gmail.ts`) est une constante **en dur**
+  (`https://anzee.xyz`), pas dérivée de `request.url` — piège vécu : dans un Route Handler
+  (Node runtime, pas Edge comme le middleware), `request.url` reflétait le hostname interne du
+  conteneur Docker (`https://<container-id>:3000/...`) plutôt que le domaine public derrière
+  Caddy, cassant toutes les redirections OAuth. Ne jamais utiliser `request.url` pour construire
+  une URL de redirection absolue dans un Route Handler de ce projet — toujours une base en dur.
+- **Format de date MariaDB** : `Date.prototype.toISOString()` (`"...THH:MM:SS.sssZ"`) est
+  **rejeté** par une colonne `DATETIME` MariaDB (`ER_TRUNCATED_WRONG_VALUE`). Utiliser
+  `toMysqlDatetime()` (`site/src/lib/gmail.ts`) qui convertit au format `"YYYY-MM-DD HH:MM:SS"`
+  attendu. Vécu et corrigé le 2026-09-18 sur `mail_oauth_tokens.access_token_expires_at`.
+
+## Accès GitHub
+
+- Remote `origin` en **SSH** (`git@github.com:Anzee977/Th-oBA.git`), pas HTTPS — pas de
+  credential HTTPS/token sur ce VPS. Clé dédiée `~/.ssh/id_ed25519_thoba` (config dans
+  `~/.ssh/config`, `Host github.com`), ajoutée comme **Deploy Key avec write access** sur le
+  repo GitHub le 2026-09-18. Si le push échoue avec un souci d'auth, vérifier que cette clé est
+  toujours listée dans Settings → Deploy keys du repo côté GitHub.
+
 ## Sécurité — à ne jamais committer
 
 - `docker/.env` et `site/.env` (mots de passe DB/admin, app password Nextcloud, `SESSION_SECRET`,
-  liens ICS qui contiennent un token secret dans l'URL). Déjà dans `.gitignore`.
+  liens ICS qui contiennent un token secret dans l'URL, `GOOGLE_CLIENT_SECRET`). Déjà dans
+  `.gitignore`.
 
 ## Déploiement
 

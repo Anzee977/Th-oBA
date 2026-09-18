@@ -15,6 +15,7 @@ import {
   DownloadIcon,
   FolderIcon,
   LogOutIcon,
+  MailIcon,
   MenuIcon,
   PillIcon,
   TrendingUpIcon,
@@ -27,6 +28,7 @@ const NAV_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   "/suivi": PillIcon,
   "/alimentation": CoffeeIcon,
   "/todo": ChecklistIcon,
+  "/mail": MailIcon,
   "/analyse": TrendingUpIcon,
   "/export": DownloadIcon,
 };

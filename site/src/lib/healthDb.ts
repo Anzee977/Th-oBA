@@ -218,6 +218,19 @@ async function ensureSchema(): Promise<void> {
           updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
       `);
+      // Jetons OAuth du compte Gmail dédié (voir lib/gmail.ts). Une seule ligne (id=1) : usage
+      // strictement personnel, un seul compte connecté à la fois. `refresh_token` est le seul
+      // champ qui compte vraiment (longue durée) ; `access_token`/`access_token_expires_at`
+      // sont juste un cache pour éviter de rafraîchir à chaque appel API.
+      await p.query(`
+        CREATE TABLE IF NOT EXISTS mail_oauth_tokens (
+          id TINYINT PRIMARY KEY DEFAULT 1,
+          refresh_token TEXT NOT NULL,
+          access_token TEXT NULL,
+          access_token_expires_at DATETIME NULL,
+          updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
     })();
   }
   await schemaReady;
@@ -1452,4 +1465,64 @@ export async function getNetworthHistory(days: number): Promise<NetworthSnapshot
     tradfiEur: Number(r.tradfi_eur),
     cashEur: Number(r.cash_eur),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Mail (Gmail dédié) : jetons OAuth. Voir lib/gmail.ts pour l'appel de l'API Gmail elle-même.
+// ---------------------------------------------------------------------------
+
+export type MailTokensRow = {
+  refreshToken: string;
+  accessToken: string | null;
+  accessTokenExpiresAt: string | null;
+};
+
+export async function getMailTokens(): Promise<MailTokensRow | null> {
+  if (!isHealthDbEnabled()) return null;
+  await ensureSchema();
+  const p = getPool();
+  const [rows] = await p.query(
+    `SELECT refresh_token, access_token, access_token_expires_at FROM mail_oauth_tokens WHERE id = 1`,
+  );
+  const row = (rows as any[])[0];
+  if (!row) return null;
+  return {
+    refreshToken: row.refresh_token,
+    accessToken: row.access_token,
+    accessTokenExpiresAt: row.access_token_expires_at,
+  };
+}
+
+export async function upsertMailTokens(data: {
+  refreshToken: string;
+  accessToken: string | null;
+  accessTokenExpiresAt: string | null;
+}): Promise<void> {
+  if (!isHealthDbEnabled()) return;
+  await ensureSchema();
+  const p = getPool();
+  await p.query(
+    `INSERT INTO mail_oauth_tokens (id, refresh_token, access_token, access_token_expires_at)
+     VALUES (1, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       refresh_token = VALUES(refresh_token),
+       access_token = VALUES(access_token),
+       access_token_expires_at = VALUES(access_token_expires_at)`,
+    [data.refreshToken, data.accessToken, data.accessTokenExpiresAt],
+  );
+}
+
+export async function deleteMailTokens(): Promise<void> {
+  if (!isHealthDbEnabled()) return;
+  await ensureSchema();
+  const p = getPool();
+  await p.query(`DELETE FROM mail_oauth_tokens WHERE id = 1`);
+}
+
+export async function isMailConnected(): Promise<boolean> {
+  if (!isHealthDbEnabled()) return false;
+  await ensureSchema();
+  const p = getPool();
+  const [rows] = await p.query(`SELECT 1 FROM mail_oauth_tokens WHERE id = 1`);
+  return (rows as any[]).length > 0;
 }

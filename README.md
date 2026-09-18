@@ -208,6 +208,34 @@ sa quantité mais sans valorisation — elle n'est pas comptée dans le total, p
 un chiffre inventé. Les prix sont mis en cache 10 minutes (1h pour les taux de change) pour ne
 pas solliciter les APIs à chaque visite.
 
+## 14. Mail (page `/mail`)
+
+Lit et traite la boîte de réception d'un compte Gmail **dédié** (pas ton compte perso) via
+l'API Gmail — marquer lu/non lu, archiver, mettre à la corbeille. Utile en particulier si tu
+veux traiter des mails d'un compte qui ne permet pas de connecter une appli tierce (ex. un
+compte universitaire) : configure un transfert automatique de ce compte vers le Gmail dédié.
+
+1. Crée un projet sur [console.cloud.google.com](https://console.cloud.google.com), active
+   l'**API Gmail** (API et services → Bibliothèque).
+2. Configure l'écran de consentement OAuth (API et services → Google Auth Platform) : type
+   Externe, ajoute le scope `gmail.modify`, ajoute le compte Gmail dédié comme **utilisateur
+   test**.
+3. Crée un identifiant OAuth (API et services → Identifiants → ID client OAuth, type
+   Application Web), avec comme URI de redirection : `https://anzee.xyz/api/mail/oauth/callback`
+4. Dans `site/.env` :
+   ```
+   GOOGLE_CLIENT_ID=<ID client>
+   GOOGLE_CLIENT_SECRET=<code secret>
+   ```
+5. `docker compose up -d --build site`, puis sur `/mail`, clique "Connecter Gmail" et
+   connecte-toi avec le compte Gmail dédié (l'avertissement "Google n'a pas validé cette
+   application" est normal pour un usage perso — Paramètres avancés → Continuer).
+
+**Point d'attention** : le client OAuth et l'écran de consentement doivent être configurés dans
+le **même projet** Google Cloud — sinon la connexion échoue avec `access_denied` même si
+l'utilisateur test est bien configuré (vérifiable sur la page "Présentation" du projet : elle
+indique explicitement si aucun client OAuth n'y est configuré).
+
 ## Scalabilité / évolutions prévues
 
 - **Ajouter une page** : créer un dossier sous `site/src/app/(app)/<page>/`, ajouter l'entrée
