@@ -71,10 +71,11 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
   bien `RRULE`** (`FREQ=WEEKLY;COUNT=N;BYDAY=...`) contrairement à ICHEC — la branche
   `event.rrule` de `getWeekSchedule`, dormante jusque-là, est activement empruntée pour ECAM.
   Premier lien ECAM fourni (avec token `?t=...`) renvoyait une **erreur 500 côté serveur ECAM**
-  (confirmée aussi dans le navigateur de Reza, pas un souci réseau/format de notre côté) — Reza
-  a fourni un lien alternatif public (`/ics/serie_4MBA11A`, sans token, par groupe/série de
-  cours) qui fonctionne. Si Reza redemande un jour d'utiliser un lien personnel `?t=...` ECAM à
-  la place, commencer par vérifier qu'il ne renvoie plus 500 avant de le configurer.
+  (confirmée aussi dans le navigateur de Reza, pas un souci réseau/format de notre côté). Reza a
+  confirmé le 2026-09-18 qu'il n'aura pas de meilleur lien — **le lien public par groupe/série
+  (`/ics/serie_4MBA11A`) est la solution définitive**, pas un pis-aller temporaire. Ne pas
+  relancer la piste du lien personnel `?t=...` de soi-même ; si Reza en obtient un nouveau un
+  jour, il le redemandera.
 - **Testé en conditions réelles le 2026-09-13** contre le vrai flux ICHEC (HYPERPLANNING 2023 -
   0.11.0), directement sur le VPS via `curl` + connexion authentifiée à `/horaire`. Mapping de
   champs confirmé correct, aucun changement de code nécessaire :
