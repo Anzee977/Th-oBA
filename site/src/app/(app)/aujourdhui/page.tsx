@@ -30,8 +30,19 @@ export default async function AujourdhuiPage() {
   todayEnd.setDate(todayEnd.getDate() + 1);
   const today = todayKey();
 
-  const [{ entries: scheduleEntries, errors: scheduleErrors }, todos, mailConnected] = await Promise.all([
+  const tomorrowStart = todayEnd;
+  const tomorrowEnd = new Date(tomorrowStart);
+  tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+  const tomorrow = tomorrowStart.toISOString().slice(0, 10);
+
+  const [
+    { entries: scheduleEntries, errors: scheduleErrors },
+    { entries: tomorrowScheduleEntries, errors: tomorrowScheduleErrors },
+    todos,
+    mailConnected,
+  ] = await Promise.all([
     getCombinedWeekSchedule(todayStart, todayEnd),
+    getCombinedWeekSchedule(tomorrowStart, tomorrowEnd),
     isHealthDbEnabled() ? listTodos() : Promise.resolve([]),
     isHealthDbEnabled() ? isMailConnected() : Promise.resolve(false),
   ]);
@@ -39,6 +50,7 @@ export default async function AujourdhuiPage() {
   const pendingTodos = todos.filter((t) => !t.done);
   const overdueTodos = pendingTodos.filter((t) => t.dueDate && t.dueDate < today);
   const todayTodos = pendingTodos.filter((t) => t.dueDate === today);
+  const tomorrowTodos = pendingTodos.filter((t) => t.dueDate === tomorrow);
 
   let unreadMail: Awaited<ReturnType<typeof listInboxMessages>> = [];
   let mailError = false;
@@ -52,6 +64,11 @@ export default async function AujourdhuiPage() {
   }
 
   const todayLabel = todayStart.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  const tomorrowLabel = tomorrowStart.toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -158,6 +175,72 @@ export default async function AujourdhuiPage() {
           )}
           <Link href="/mail" className="link-btn" style={{ marginTop: 10, display: "inline-block" }}>
             Voir la boîte de réception
+          </Link>
+        </div>
+      </div>
+
+      <h2 style={{ marginTop: 40 }}>Demain</h2>
+      <p className="muted" style={{ textTransform: "capitalize" }}>
+        {tomorrowLabel}
+      </p>
+
+      <div
+        className="grid"
+        style={{ marginTop: 20, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+      >
+        <div className="card">
+          <div className="card-header">
+            <span className="stat-icon info">
+              <CalendarIcon size={16} />
+            </span>
+            <h2>Cours</h2>
+          </div>
+          {tomorrowScheduleErrors.length > 0 && (
+            <p className="error" style={{ fontSize: 13 }}>
+              Échec du chargement pour : {tomorrowScheduleErrors.join(", ")}.
+            </p>
+          )}
+          {tomorrowScheduleEntries.length === 0 ? (
+            <p className="muted">Aucun cours demain.</p>
+          ) : (
+            <ul className="activity-list">
+              {tomorrowScheduleEntries.map((e) => (
+                <li key={e.id} className="activity-row">
+                  <span>
+                    {formatTime(e.start)}–{formatTime(e.end)} · {e.title}
+                    {e.location && ` (${e.location})`}
+                  </span>
+                  <span className="muted">{e.source}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link href="/horaire?offset=1" className="link-btn" style={{ marginTop: 10, display: "inline-block" }}>
+            Voir l&apos;horaire complet
+          </Link>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <span className="stat-icon warning">
+              <ChecklistIcon size={16} />
+            </span>
+            <h2>Todo</h2>
+          </div>
+          {tomorrowTodos.length === 0 ? (
+            <p className="muted">Rien de prévu.</p>
+          ) : (
+            <ul className="activity-list">
+              {tomorrowTodos.map((t) => (
+                <li key={t.id} className="activity-row">
+                  <span>{t.text}</span>
+                  <span className="muted">Demain</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link href="/todo" className="link-btn" style={{ marginTop: 10, display: "inline-block" }}>
+            Voir toutes les tâches
           </Link>
         </div>
       </div>
