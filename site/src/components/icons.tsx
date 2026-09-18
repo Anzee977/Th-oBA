@@ -288,6 +288,15 @@ export function LockIcon({ size = 20 }: IconProps) {
   );
 }
 
+export function HomeIcon({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="m3 11 9-8 9 8" />
+      <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
+    </svg>
+  );
+}
+
 export function MailIcon({ size = 16 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base}>

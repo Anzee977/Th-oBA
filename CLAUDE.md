@@ -38,6 +38,17 @@ Domaine : `anzee.xyz` (site) / `cloud.anzee.xyz` (Nextcloud), DNS chez Cloudflar
 
 ## État actuel (modules livrés)
 
+### Page Aujourd'hui (`/aujourdhui`) — page d'accueil
+- Ajoutée le 2026-09-18 à la demande de Reza ("qu'ajouter pour être plus productif ?").
+  **Page d'accueil du site** : `/` et le login redirigent ici (plus vers `/cours`).
+- Dashboard résumé en **lecture seule** (pas de gestion, juste des liens "Voir tout" vers les
+  pages complètes) : cours du jour (réutilise `getCombinedWeekSchedule` de `lib/schedule.ts`
+  filtré sur aujourd'hui), tâches en retard + dues aujourd'hui (réutilise `listTodos`), mails
+  non lus si Gmail est connecté (réutilise `listInboxMessages` de `lib/gmail.ts`).
+- Conçue pour ne rien casser si Mail n'est pas connecté/en erreur (cas courant vu les soucis de
+  vérification Google en cours) : affiche un message discret plutôt qu'une erreur qui bloque la
+  page. Aucune nouvelle donnée stockée, juste l'agrégation de ce qui existait déjà.
+
 ### Page Cours / Drive (`/cours`)
 - Liste des cours (dossiers Nextcloud sous `Cours/`), création de nouveau cours.
 - `/cours/[cours]` : upload par glisser-déposer (fichiers ou dossiers entiers, récursif via

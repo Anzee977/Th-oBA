@@ -28,7 +28,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/cours");
+      router.push("/aujourdhui");
       router.refresh();
     } finally {
       setLoading(false);

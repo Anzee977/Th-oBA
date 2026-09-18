@@ -12,6 +12,10 @@ export type NavGroup = {
 
 export const navGroups: NavGroup[] = [
   {
+    label: "Accueil",
+    items: [{ href: "/aujourdhui", label: "Aujourd'hui" }],
+  },
+  {
     label: "Cours",
     items: [
       { href: "/cours", label: "Cours & Drive" },

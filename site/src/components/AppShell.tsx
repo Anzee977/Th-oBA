@@ -14,6 +14,7 @@ import {
   CoffeeIcon,
   DownloadIcon,
   FolderIcon,
+  HomeIcon,
   LogOutIcon,
   MailIcon,
   MenuIcon,
@@ -22,6 +23,7 @@ import {
 } from "./icons";
 
 const NAV_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+  "/aujourdhui": HomeIcon,
   "/cours": FolderIcon,
   "/calendrier": CalendarIcon,
   "/sante": ActivityIcon,
