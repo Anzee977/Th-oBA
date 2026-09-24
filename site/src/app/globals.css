@@ -184,6 +184,9 @@ select {
   display: flex;
   flex-direction: column;
   gap: 28px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .sidebar-top {
